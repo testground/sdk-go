@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -48,6 +49,7 @@ func Invoke(tc TestCaseFn) {
 	defer runenv.Close()
 
 	setupHTTPListener(runenv)
+	setupMetrics(runenv)
 
 	runenv.RecordStart()
 
@@ -128,4 +130,8 @@ func setupHTTPListener(runenv *RunEnv) {
 	go func() {
 		_ = http.Serve(l, nil)
 	}()
+}
+
+func setupMetrics(runenv *RunEnv) {
+	runenv.M().Log(time.Second, runenv.logger)
 }

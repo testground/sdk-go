@@ -78,3 +78,8 @@ func (l *logger) SLogger() *zap.SugaredLogger {
 func (l *logger) Loggers() (*zap.Logger, *zap.SugaredLogger) {
 	return l.logger, l.slogger
 }
+
+// Implement go-metrics.Logger interface
+func (l *logger) Printf(format string, v ...interface{}) {
+	l.slogger.Infof(format, v...)
+}
