@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"encoding/json"
 	"fmt"
 	"runtime/debug"
 
@@ -185,8 +186,39 @@ func (l *logger) RecordMetric(metric *MetricDefinition, value float64) {
 }
 
 // RecordNamespaced records binary data into the log, keyed by the provided namespace
-func (l *logger) RecordNamespaced(namespace string, msg []byte) {
-	l.logger.Info("", zap.Binary(namespace, msg))
+func (l *logger) RecordJsonMetric(namespace string, msg []byte) {
+	// The schema is a map[string]map[string]<number_type>
+	// The number type will have to be converted into float64.
+	unk := make(map[string]interface{})
+	json.Unmarshal(msg, &unk)
+	var evt Event
+	for metric_name, v := range unk {
+		vmap := v.(map[string]interface{})
+		for unit, number := range vmap {
+			var value float64
+			switch number.(type) {
+			case float64:
+				value = number.(float64)
+			case int64:
+				value = float64(number.(int64))
+			}
+			// I don't know what the positive direction should be
+			metricDef := MetricDefinition{
+				Name: metric_name,
+				Unit: unit,
+			}
+			evt = Event{
+				Type: EventTypeMetric,
+				Metric: &MetricValue{
+					MetricDefinition: metricDef,
+					Value:            value,
+				},
+			}
+		}
+		l.logger.Info("", zap.Object(namespace, evt))
+	}
+	// Another way to do this, just output in json-log format
+	//	l.logger.Info("", zap.Binary(namespace, msg))
 }
 
 // Message prints out an informational message.

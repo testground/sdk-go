@@ -85,6 +85,6 @@ type RunenvLoggerWriter struct {
 }
 
 func (r *RunenvLoggerWriter) Write(p []byte) (n int, err error) {
-	r.runenv.RecordNamespaced(r.namespace, p)
+	r.runenv.RecordJsonMetric(r.namespace, p)
 	return len(p), nil
 }
