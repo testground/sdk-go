@@ -184,6 +184,11 @@ func (l *logger) RecordMetric(metric *MetricDefinition, value float64) {
 	l.logger.Info("", zap.Object("event", evt))
 }
 
+// RecordNamespaced records binary data into the log, keyed by the provided namespace
+func (l *logger) RecordNamespaced(namespace string, msg []byte) {
+	l.logger.Info("", zap.Binary(namespace, msg))
+}
+
 // Message prints out an informational message.
 //
 // Deprecated: use RecordMessage.

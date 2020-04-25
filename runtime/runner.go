@@ -133,14 +133,19 @@ func setupHTTPListener(runenv *RunEnv) {
 }
 
 func setupMetrics(runenv *RunEnv) (err error) {
+	// A raw file for writing json data
 	mfile, err := runenv.CreateRawAsset("metrics.out")
 	if err != nil {
 		runenv.RecordCrash(err)
 		return
 	}
 
+	lw := &RunenvLoggerWriter{runenv, "metrics"}
+
+	w := io.MultiWriter(mfile, lw)
+
 	duration := time.Second
 
-	go runenv.M().WriteJson(duration, mfile)
+	go runenv.M().WriteJson(duration, w)
 	return nil
 }

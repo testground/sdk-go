@@ -79,7 +79,12 @@ func (l *logger) Loggers() (*zap.Logger, *zap.SugaredLogger) {
 	return l.logger, l.slogger
 }
 
-// Implement go-metrics.Logger interface
-func (l *logger) Printf(format string, v ...interface{}) {
-	l.slogger.Infof(format, v...)
+type RunenvLoggerWriter struct {
+	runenv    *RunEnv
+	namespace string
+}
+
+func (r *RunenvLoggerWriter) Write(p []byte) (n int, err error) {
+	r.runenv.RecordNamespaced(r.namespace, p)
+	return len(p), nil
 }
