@@ -132,6 +132,15 @@ func setupHTTPListener(runenv *RunEnv) {
 	}()
 }
 
-func setupMetrics(runenv *RunEnv) {
-	runenv.M().Log(time.Second, runenv.logger)
+func setupMetrics(runenv *RunEnv) (err error) {
+	mfile, err := runenv.CreateRawAsset("metrics.out")
+	if err != nil {
+		runenv.RecordCrash(err)
+		return
+	}
+
+	duration := time.Second
+
+	go runenv.M().WriteJson(duration, mfile)
+	return nil
 }
