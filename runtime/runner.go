@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime/debug"
 	"strings"
-
-	"net/http"
-	_ "net/http/pprof"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -88,7 +87,7 @@ func Invoke(tc TestCaseFn) {
 			runenv.RecordCrash(err)
 
 			// Developers expect panics to be recorded in run.err too.
-			fmt.Fprintln(os.Stderr, err)
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			debug.PrintStack()
 		}
 	}()

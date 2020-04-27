@@ -11,7 +11,6 @@ import (
 type logger struct {
 	runenv *RunParams
 
-	// TODO: we'll want different kinds of loggers.
 	logger  *zap.Logger
 	slogger *zap.SugaredLogger
 }
@@ -72,9 +71,4 @@ func (l *logger) init() {
 
 func (l *logger) SLogger() *zap.SugaredLogger {
 	return l.slogger
-}
-
-// Loggers returns the loggers populated from this runenv.
-func (l *logger) Loggers() (*zap.Logger, *zap.SugaredLogger) {
-	return l.logger, l.slogger
 }

@@ -16,7 +16,6 @@ type (
 const (
 	EventTypeStart   = EventType("start")
 	EventTypeMessage = EventType("message")
-	EventTypeMetric  = EventType("metric")
 	EventTypeFinish  = EventType("finish")
 
 	EventOutcomeOK      = EventOutcome("ok")
@@ -30,19 +29,7 @@ type Event struct {
 	Error      string       `json:"error,omitempty"`
 	Stacktrace string       `json:"stacktrace,omitempty"`
 	Message    string       `json:"message,omitempty"`
-	Metric     *MetricValue `json:"metric,omitempty"`
 	Runenv     *RunParams   `json:"runenv,omitempty"`
-}
-
-type MetricDefinition struct {
-	Name           string `json:"name"`
-	Unit           string `json:"unit"`
-	ImprovementDir int    `json:"dir"`
-}
-
-type MetricValue struct {
-	MetricDefinition
-	Value float64 `json:"value"`
 }
 
 func (e Event) MarshalLogObject(oe zapcore.ObjectEncoder) error {
@@ -60,11 +47,6 @@ func (e Event) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 	if e.Message != "" {
 		oe.AddString("message", e.Message)
 	}
-	if e.Metric != nil {
-		if err := oe.AddObject("metric", e.Metric); err != nil {
-			return err
-		}
-	}
 	if e.Runenv != nil {
 		if err := oe.AddObject("runenv", e.Runenv); err != nil {
 			return err
@@ -74,46 +56,35 @@ func (e Event) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 	return nil
 }
 
-func (m MetricValue) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-	if m.Name == "" {
-		return nil
-	}
-	oe.AddString("name", m.Name)
-	oe.AddString("unit", m.Unit)
-	oe.AddInt("dir", m.ImprovementDir)
-	oe.AddFloat64("value", m.Value)
-	return nil
-}
-
-func (r *RunParams) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-	oe.AddString("plan", r.TestPlan)
-	oe.AddString("case", r.TestCase)
-	if err := oe.AddReflected("params", r.TestInstanceParams); err != nil {
+func (rp *RunParams) MarshalLogObject(oe zapcore.ObjectEncoder) error {
+	oe.AddString("plan", rp.TestPlan)
+	oe.AddString("case", rp.TestCase)
+	if err := oe.AddReflected("params", rp.TestInstanceParams); err != nil {
 		return err
 	}
-	oe.AddInt("instances", r.TestInstanceCount)
-	oe.AddString("outputs_path", r.TestOutputsPath)
+	oe.AddInt("instances", rp.TestInstanceCount)
+	oe.AddString("outputs_path", rp.TestOutputsPath)
 	oe.AddString("network", func() string {
-		if r.TestSubnet == nil {
+		if rp.TestSubnet == nil {
 			return ""
 		}
-		return r.TestSubnet.Network()
+		return rp.TestSubnet.Network()
 	}())
 
-	oe.AddString("group", r.TestGroupID)
-	oe.AddInt("group_instances", r.TestGroupInstanceCount)
+	oe.AddString("group", rp.TestGroupID)
+	oe.AddInt("group_instances", rp.TestGroupInstanceCount)
 
-	if r.TestRepo != "" {
-		oe.AddString("repo", r.TestRepo)
+	if rp.TestRepo != "" {
+		oe.AddString("repo", rp.TestRepo)
 	}
-	if r.TestCommit != "" {
-		oe.AddString("commit", r.TestCommit)
+	if rp.TestCommit != "" {
+		oe.AddString("commit", rp.TestCommit)
 	}
-	if r.TestBranch != "" {
-		oe.AddString("branch", r.TestBranch)
+	if rp.TestBranch != "" {
+		oe.AddString("branch", rp.TestBranch)
 	}
-	if r.TestTag != "" {
-		oe.AddString("tag", r.TestTag)
+	if rp.TestTag != "" {
+		oe.AddString("tag", rp.TestTag)
 	}
 	return nil
 }
@@ -169,32 +140,4 @@ func (l *logger) RecordCrash(err interface{}) {
 		Stacktrace: string(debug.Stack()),
 	}
 	l.logger.Error("", zap.Object("event", evt))
-}
-
-// RecordMetric records a metric event associated with the provided metric
-// definition, giving it value `value`.
-func (l *logger) RecordMetric(metric *MetricDefinition, value float64) {
-	evt := Event{
-		Type: EventTypeMetric,
-		Metric: &MetricValue{
-			MetricDefinition: *metric,
-			Value:            value,
-		},
-	}
-	l.logger.Info("", zap.Object("event", evt))
-}
-
-// Message prints out an informational message.
-//
-// Deprecated: use RecordMessage.
-func (r *RunEnv) Message(msg string, a ...interface{}) {
-	r.RecordMessage(msg, a...)
-}
-
-// EmitMetric outputs a metric event associated with the provided metric
-// definition, giving it value `value`.
-//
-// Deprecated: use RecordMetric.
-func (r *RunEnv) EmitMetric(metric *MetricDefinition, value float64) {
-	r.RecordMetric(metric, value)
 }
