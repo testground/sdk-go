@@ -135,7 +135,7 @@ func (l *logger) RecordFailure(err error) {
 func (l *logger) RecordCrash(err interface{}) {
 	evt := Event{
 		Type:       EventTypeFinish,
-		Outcome:    EventOutcomeFailed,
+		Outcome:    EventOutcomeCrashed,
 		Error:      fmt.Sprintf("%s", err),
 		Stacktrace: string(debug.Stack()),
 	}

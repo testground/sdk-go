@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+
+	"github.com/testground/sdk-go/test"
 )
 
 // TestGenericClientRunEnv checks that states and payloads published by a bound
@@ -26,7 +28,8 @@ func TestGenericClientRunEnv(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	runenv := randomRunEnv()
+	runenv, cleanup := test.RandomRunEnv(t)
+	t.Cleanup(cleanup)
 
 	bclient, err := NewBoundClient(ctx, runenv)
 	if err != nil {

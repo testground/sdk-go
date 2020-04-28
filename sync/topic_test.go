@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"golang.org/x/sync/errgroup"
+
+	"github.com/testground/sdk-go/test"
 )
 
 type TestPayload struct {
@@ -19,9 +21,11 @@ type TestPayload struct {
 
 func TestSubscribeAfterAllPublished(t *testing.T) {
 	var (
-		iterations = 1000
-		runenv     = randomRunEnv()
+		iterations      = 1000
+		runenv, cleanup = test.RandomRunEnv(t)
 	)
+
+	t.Cleanup(cleanup)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -64,9 +68,11 @@ func TestSubscribeAfterAllPublished(t *testing.T) {
 
 func TestSubscribeFirstConcurrentWrites(t *testing.T) {
 	var (
-		iterations = 1000
-		runenv     = randomRunEnv()
+		iterations      = 1000
+		runenv, cleanup = test.RandomRunEnv(t)
 	)
+
+	t.Cleanup(cleanup)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -118,10 +124,12 @@ func TestSubscribeFirstConcurrentWrites(t *testing.T) {
 
 func TestSubscriptionConcurrentPublishersSubscribers(t *testing.T) {
 	var (
-		topics     = 100
-		iterations = 100
-		runenv     = randomRunEnv()
+		topics          = 100
+		iterations      = 100
+		runenv, cleanup = test.RandomRunEnv(t)
 	)
+
+	t.Cleanup(cleanup)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -169,7 +177,9 @@ func TestSubscriptionConcurrentPublishersSubscribers(t *testing.T) {
 }
 
 func TestSubscriptionValidation(t *testing.T) {
-	runenv := randomRunEnv()
+	runenv, cleanup := test.RandomRunEnv(t)
+
+	t.Cleanup(cleanup)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -205,10 +215,12 @@ func TestSubscriptionValidation(t *testing.T) {
 
 func TestSequenceOnWrite(t *testing.T) {
 	var (
-		iterations = 1000
-		runenv     = randomRunEnv()
-		topic      = &Topic{name: "pandemic", typ: reflect.TypeOf("")}
+		iterations      = 1000
+		topic           = &Topic{name: "pandemic", typ: reflect.TypeOf("")}
+		runenv, cleanup = test.RandomRunEnv(t)
 	)
+
+	t.Cleanup(cleanup)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
