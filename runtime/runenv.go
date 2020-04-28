@@ -1,10 +1,14 @@
 package runtime
 
 import (
+	"context"
+	"encoding/json"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/hashicorp/go-multierror"
 	influxdb2 "github.com/influxdata/influxdb-client-go"
 	"go.uber.org/zap"
@@ -134,20 +138,84 @@ func (re *RunEnv) Close() error {
 		_ = l.SLogger().Sync()
 	}
 
-	close(re.closeCh)
-	re.wg.Wait()
-	err = multierror.Append(err, re.assetsErr)
-
+	// Flush the diagnostics InfluxDB writer.
 	if re.wapi != nil {
 		re.wapi.Flush()
 		re.wapi.Close()
 	}
 
+	// Next, we reopen the results.out file, and upload all points to InfluxDB
+	// using the blocking API.
+	results, err2 := os.OpenFile(filepath.Join(re.TestOutputsPath, "results.out"), os.O_RDONLY, 0666)
+	if err2 == nil {
+		err2 = re.batchInsertInfluxDB(results)
+	}
+	err = multierror.Append(err, err2)
+
+	// This close stops monitoring the wapi errors channel, and closes assets.
+	close(re.closeCh)
+	re.wg.Wait()
+	err = multierror.Append(err, re.assetsErr)
+
+	// Now we're ready to close InfluxDB.
 	if re.influxdb != nil {
 		re.influxdb.Close()
 	}
 
 	return err.ErrorOrNil()
+}
+
+func (re *RunEnv) batchInsertInfluxDB(results *os.File) error {
+	tags := map[string]string{
+		"plan":     re.TestPlan,
+		"case":     re.TestCase,
+		"run":      re.TestRun,
+		"group_id": re.TestGroupID,
+	}
+
+	var (
+		count  int
+		points []*influxdb2.Point
+	)
+
+	wapib := re.influxdb.WriteApiBlocking("testground", "results")
+	for dec := json.NewDecoder(results); dec.More(); {
+		var m Metric
+		if err := dec.Decode(&m); err != nil {
+			re.RecordMessage("failed to decode Metric from results.out: %s", err)
+			continue
+		}
+
+		// NewPoint copies all tags and fields, so this is thread-safe.
+		p := influxdb2.NewPoint(m.Name, tags, m.Measures, time.Unix(0, m.Timestamp))
+		p.AddTag("type", m.Type.String())
+		points = append(points, p)
+		count++
+
+		// upload a batch every 500 points, or if this is the last point.
+		if count%500 == 0 || !dec.More() {
+			logger := func(n uint, err error) {
+				re.RecordMessage("failed to upload result points on attempt %d to InfluxDB: %s", n, err)
+			}
+
+			write := func() error {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				return wapib.WritePoint(ctx, points...)
+			}
+
+			// retry 5 times, with a delay of 1 seconds, and the default jitter, logging each attempt
+			// into the runenv.
+			err := retry.Do(write, retry.Attempts(5), retry.Delay(1*time.Second), retry.OnRetry(logger))
+
+			if err != nil {
+				re.RecordMessage("failed completely to upload a batch of result points to InfluxDB: %s", err)
+			}
+			points = points[:0]
+		}
+	}
+	return nil
 }
 
 // CurrentRunEnv populates a test context from environment vars.

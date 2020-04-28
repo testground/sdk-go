@@ -3,6 +3,7 @@ module github.com/testground/sdk-go
 go 1.14
 
 require (
+	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-redis/redis/v7 v7.2.0
 	github.com/hashicorp/go-multierror v1.1.0
