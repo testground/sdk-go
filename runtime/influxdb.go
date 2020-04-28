@@ -21,6 +21,9 @@ func NewInfluxDBClient() (influxdb2.InfluxDBClient, error) {
 	}
 
 	auth := os.Getenv(EnvInfluxDBAuthToken)
+	if auth == "" {
+		return nil, fmt.Errorf("no InfluxDB auth token in $%s env var", EnvInfluxDBAuthToken)
+	}
 
 	opts := influxdb2.DefaultOptions()
 	opts.SetMaxRetries(10)
@@ -34,5 +37,6 @@ func NewInfluxDBClient() (influxdb2.InfluxDBClient, error) {
 	if ok, err := client.Ready(ctx); err != nil || !ok {
 		return nil, fmt.Errorf("influxdb not ready: %w", err)
 	}
+
 	return client, nil
 }

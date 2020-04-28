@@ -1,6 +1,8 @@
 package runtime
 
 import (
+	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -17,8 +19,29 @@ const (
 	MetricTimer
 )
 
+var typeMappings = [...]string{"point", "counter", "ewma", "gauge", "histogram", "meter", "timer"}
+
 func (mt MetricType) String() string {
-	return [...]string{"point", "counter", "ewma", "gauge", "histogram", "meter", "timer"}[mt]
+	return typeMappings[mt]
+}
+
+func (mt MetricType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(mt.String())
+}
+
+// UnmarshalJSON is only used for testing; it's inefficient but not relevant.
+func (mt *MetricType) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return nil
+	}
+	for i, m := range typeMappings {
+		if m == s {
+			*mt = MetricType(i)
+			return nil
+		}
+	}
+	return fmt.Errorf("invalid metric type")
 }
 
 var pools = func() (p [7]sync.Pool) {
@@ -32,9 +55,9 @@ var pools = func() (p [7]sync.Pool) {
 
 type Metric struct {
 	Timestamp int64                  `json:"ts"`
-	Type      MetricType             `json:"t"`
-	Name      string                 `json:"n"`
-	Measures  map[string]interface{} `json:"m"`
+	Type      MetricType             `json:"type"`
+	Name      string                 `json:"name"`
+	Measures  map[string]interface{} `json:"measures"`
 }
 
 func (m *Metric) Release() {
@@ -52,7 +75,7 @@ func NewMetric(name string, i interface{}) *Metric {
 	case Point:
 		t = MetricPoint
 		m = pools[t].Get().(*Metric)
-		m.Measures["value"] = v
+		m.Measures["value"] = float64(v)
 
 	case Counter:
 		t = MetricCounter

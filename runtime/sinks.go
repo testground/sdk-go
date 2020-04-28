@@ -19,19 +19,12 @@ func LogSinkJSON(re *RunEnv, filename string) SinkFn {
 	}
 }
 
-func WriteToInfluxDB(re *RunEnv, w influxdb2.WriteApi) SinkFn {
-	tags := map[string]string{
-		"plan":     re.TestPlan,
-		"case":     re.TestCase,
-		"run":      re.TestRun,
-		"group_id": re.TestGroupID,
-	}
-
+func WriteToInfluxDB(re *RunEnv) SinkFn {
 	return func(m *Metric) error {
 		// NewPoint copies all tags and fields, so this is thread-safe.
-		p := influxdb2.NewPoint(m.Name, tags, m.Measures, time.Unix(0, m.Timestamp))
+		p := influxdb2.NewPoint(m.Name, re.tags, m.Measures, time.Unix(0, m.Timestamp))
 		p.AddTag("type", m.Type.String())
-		w.WritePoint(p)
+		re.wapi.WritePoint(p)
 		return nil
 	}
 }

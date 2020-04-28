@@ -42,15 +42,14 @@ type MetricsApi struct {
 }
 
 type metricsApiOpts struct {
-	prefix string
-	freq   time.Duration
-	sinks  []SinkFn
+	freq  time.Duration
+	sinks []SinkFn
 }
 
 func newMetricsApi(re *RunEnv, opts metricsApiOpts) *MetricsApi {
 	m := &MetricsApi{
 		re:           re,
-		reg:          metrics.NewPrefixedRegistry(opts.prefix),
+		reg:          metrics.NewRegistry(),
 		sinks:        opts.sinks,
 		freq:         opts.freq,
 		freqChangeCh: make(chan time.Duration),

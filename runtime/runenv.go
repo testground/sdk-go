@@ -17,12 +17,14 @@ import (
 // RunEnv encapsulates the context for this test run.
 type RunEnv struct {
 	RunParams
-	*logger
+
+	logger *zap.Logger
 
 	diagnostics *MetricsApi
 	results     *MetricsApi
 	influxdb    influxdb2.InfluxDBClient
 	wapi        influxdb2.WriteApi
+	tags        map[string]string
 
 	wg        sync.WaitGroup
 	closeCh   chan struct{}
@@ -38,12 +40,17 @@ type RunEnv struct {
 	}
 }
 
+func (re *RunEnv) SLogger() *zap.SugaredLogger {
+	return re.logger.Sugar()
+}
+
 // NewRunEnv constructs a runtime environment from the given runtime parameters.
 func NewRunEnv(params RunParams) *RunEnv {
 	re := &RunEnv{
 		RunParams: params,
-		logger:    newLogger(&params),
+		closeCh:   make(chan struct{}),
 	}
+	re.initLogger()
 
 	re.structured.ch = make(chan *zap.Logger)
 	re.unstructured.ch = make(chan *os.File)
@@ -54,26 +61,31 @@ func NewRunEnv(params RunParams) *RunEnv {
 	var dsinks = []SinkFn{LogSinkJSON(re, "diagnostics.out")}
 	client, err := NewInfluxDBClient()
 	if err == nil {
+		re.tags = map[string]string{
+			"plan":     re.TestPlan,
+			"case":     re.TestCase,
+			"run":      re.TestRun,
+			"group_id": re.TestGroupID,
+		}
+
 		re.influxdb = client
-		wapi := client.WriteApi("testground", "diagnostics")
-		dsinks = append(dsinks, WriteToInfluxDB(re, wapi))
+		re.wapi = client.WriteApi("testground", "diagnostics")
+		dsinks = append(dsinks, WriteToInfluxDB(re))
 
 		re.wg.Add(1)
 		go re.monitorInfluxDBErrors()
 	} else {
-		re.logger.RecordMessage("InfluxDB unavailable; no metrics will be dispatched: %s", err)
+		re.RecordMessage("InfluxDB unavailable; no metrics will be dispatched: %s", err)
 	}
 
 	re.diagnostics = newMetricsApi(re, metricsApiOpts{
-		prefix: "diag.",
-		freq:   1 * time.Second,
-		sinks:  dsinks,
+		freq:  1 * time.Second,
+		sinks: dsinks,
 	})
 
 	re.results = newMetricsApi(re, metricsApiOpts{
-		prefix: "results.",
-		freq:   1 * time.Second,
-		sinks:  []SinkFn{LogSinkJSON(re, "results.out")},
+		freq:  1 * time.Second,
+		sinks: []SinkFn{LogSinkJSON(re, "results.out")},
 	})
 
 	return re
@@ -131,26 +143,30 @@ func (re *RunEnv) manageAssets() {
 
 func (re *RunEnv) Close() error {
 	var err *multierror.Error
+
+	// close diagnostics; this stops the ticker and any further observations on
+	// runenv.D() will fail/panic.
 	err = multierror.Append(re.diagnostics.Close())
+
+	// close results; no more results via runenv.R() can be recorded.
 	err = multierror.Append(re.results.Close())
 
-	if l := re.logger; l != nil {
-		_ = l.SLogger().Sync()
+	if re.influxdb != nil {
+		// Next, we reopen the results.out file, and upload all points to InfluxDB
+		// using the blocking API.
+		results, err2 := os.OpenFile(filepath.Join(re.TestOutputsPath, "results.out"), os.O_RDONLY, 0666)
+		if err2 == nil {
+			// batchInsertInfluxDB will record errors via runenv.RecordMessage().
+			err2 = re.batchInsertInfluxDB(results)
+		}
+		err = multierror.Append(err, err2)
 	}
 
-	// Flush the diagnostics InfluxDB writer.
+	// Flush the immediate InfluxDB writer.
 	if re.wapi != nil {
 		re.wapi.Flush()
 		re.wapi.Close()
 	}
-
-	// Next, we reopen the results.out file, and upload all points to InfluxDB
-	// using the blocking API.
-	results, err2 := os.OpenFile(filepath.Join(re.TestOutputsPath, "results.out"), os.O_RDONLY, 0666)
-	if err2 == nil {
-		err2 = re.batchInsertInfluxDB(results)
-	}
-	err = multierror.Append(err, err2)
 
 	// This close stops monitoring the wapi errors channel, and closes assets.
 	close(re.closeCh)
@@ -162,17 +178,14 @@ func (re *RunEnv) Close() error {
 		re.influxdb.Close()
 	}
 
+	if l := re.logger; l != nil {
+		_ = l.Sync()
+	}
+
 	return err.ErrorOrNil()
 }
 
 func (re *RunEnv) batchInsertInfluxDB(results *os.File) error {
-	tags := map[string]string{
-		"plan":     re.TestPlan,
-		"case":     re.TestCase,
-		"run":      re.TestRun,
-		"group_id": re.TestGroupID,
-	}
-
 	var (
 		count  int
 		points []*influxdb2.Point
@@ -187,7 +200,7 @@ func (re *RunEnv) batchInsertInfluxDB(results *os.File) error {
 		}
 
 		// NewPoint copies all tags and fields, so this is thread-safe.
-		p := influxdb2.NewPoint(m.Name, tags, m.Measures, time.Unix(0, m.Timestamp))
+		p := influxdb2.NewPoint(m.Name, re.tags, m.Measures, time.Unix(0, m.Timestamp))
 		p.AddTag("type", m.Type.String())
 		points = append(points, p)
 		count++

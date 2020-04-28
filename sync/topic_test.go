@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/testground/sdk-go/test"
+	"github.com/testground/sdk-go/runtime"
 )
 
 type TestPayload struct {
@@ -22,7 +22,7 @@ type TestPayload struct {
 func TestSubscribeAfterAllPublished(t *testing.T) {
 	var (
 		iterations      = 1000
-		runenv, cleanup = test.RandomRunEnv(t)
+		runenv, cleanup = runtime.RandomTestRunEnv(t)
 	)
 
 	t.Cleanup(cleanup)
@@ -69,7 +69,7 @@ func TestSubscribeAfterAllPublished(t *testing.T) {
 func TestSubscribeFirstConcurrentWrites(t *testing.T) {
 	var (
 		iterations      = 1000
-		runenv, cleanup = test.RandomRunEnv(t)
+		runenv, cleanup = runtime.RandomTestRunEnv(t)
 	)
 
 	t.Cleanup(cleanup)
@@ -126,7 +126,7 @@ func TestSubscriptionConcurrentPublishersSubscribers(t *testing.T) {
 	var (
 		topics          = 100
 		iterations      = 100
-		runenv, cleanup = test.RandomRunEnv(t)
+		runenv, cleanup = runtime.RandomTestRunEnv(t)
 	)
 
 	t.Cleanup(cleanup)
@@ -177,7 +177,7 @@ func TestSubscriptionConcurrentPublishersSubscribers(t *testing.T) {
 }
 
 func TestSubscriptionValidation(t *testing.T) {
-	runenv, cleanup := test.RandomRunEnv(t)
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
 
 	t.Cleanup(cleanup)
 
@@ -217,7 +217,7 @@ func TestSequenceOnWrite(t *testing.T) {
 	var (
 		iterations      = 1000
 		topic           = &Topic{name: "pandemic", typ: reflect.TypeOf("")}
-		runenv, cleanup = test.RandomRunEnv(t)
+		runenv, cleanup = runtime.RandomTestRunEnv(t)
 	)
 
 	t.Cleanup(cleanup)

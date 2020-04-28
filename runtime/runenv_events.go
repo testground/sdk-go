@@ -3,7 +3,9 @@ package runtime
 import (
 	"fmt"
 	"runtime/debug"
+	"time"
 
+	influxdb2 "github.com/influxdata/influxdb-client-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -59,6 +61,7 @@ func (e Event) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 func (rp *RunParams) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 	oe.AddString("plan", rp.TestPlan)
 	oe.AddString("case", rp.TestCase)
+	oe.AddString("run", rp.TestRun)
 	if err := oe.AddReflected("params", rp.TestInstanceParams); err != nil {
 		return err
 	}
@@ -68,7 +71,7 @@ func (rp *RunParams) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 		if rp.TestSubnet == nil {
 			return ""
 		}
-		return rp.TestSubnet.Network()
+		return rp.TestSubnet.String()
 	}())
 
 	oe.AddString("group", rp.TestGroupID)
@@ -90,7 +93,7 @@ func (rp *RunParams) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 }
 
 // RecordMessage records an informational message.
-func (l *logger) RecordMessage(msg string, a ...interface{}) {
+func (re *RunEnv) RecordMessage(msg string, a ...interface{}) {
 	if len(a) > 0 {
 		msg = fmt.Sprintf(msg, a...)
 	}
@@ -98,46 +101,78 @@ func (l *logger) RecordMessage(msg string, a ...interface{}) {
 		Type:    EventTypeMessage,
 		Message: msg,
 	}
-	l.logger.Info("", zap.Object("event", evt))
+	re.logger.Info("", zap.Object("event", evt))
 }
 
-func (l *logger) RecordStart() {
+func (re *RunEnv) RecordStart() {
 	evt := Event{
 		Type:   EventTypeStart,
-		Runenv: l.runenv,
+		Runenv: &re.RunParams,
 	}
 
-	l.logger.Info("", zap.Object("event", evt))
+	re.logger.Info("", zap.Object("event", evt))
+	if re.wapi != nil {
+		f := map[string]interface{}{
+			"type": "instance.start",
+		}
+		p := influxdb2.NewPoint("lifecycle", re.tags, f, time.Now())
+		re.wapi.WritePoint(p)
+	}
 }
 
 // RecordSuccess records that the calling instance succeeded.
-func (l *logger) RecordSuccess() {
+func (re *RunEnv) RecordSuccess() {
 	evt := Event{
 		Type:    EventTypeFinish,
 		Outcome: EventOutcomeOK,
 	}
-	l.logger.Info("", zap.Object("event", evt))
+	re.logger.Info("", zap.Object("event", evt))
+	if re.wapi != nil {
+		f := map[string]interface{}{
+			"type": "instance.success",
+		}
+		p := influxdb2.NewPoint("lifecycle", re.tags, f, time.Now())
+		re.wapi.WritePoint(p)
+	}
 }
 
 // RecordFailure records that the calling instance failed with the supplied
 // error.
-func (l *logger) RecordFailure(err error) {
+func (re *RunEnv) RecordFailure(err error) {
 	evt := Event{
 		Type:    EventTypeFinish,
 		Outcome: EventOutcomeFailed,
 		Error:   err.Error(),
 	}
-	l.logger.Info("", zap.Object("event", evt))
+	re.logger.Info("", zap.Object("event", evt))
+	if re.wapi != nil {
+		f := map[string]interface{}{
+			"type":    "instance.finish",
+			"outcome": "failed",
+			"error":   err.Error(),
+		}
+		p := influxdb2.NewPoint("lifecycle", re.tags, f, time.Now())
+		re.wapi.WritePoint(p)
+	}
 }
 
 // RecordCrash records that the calling instance crashed/panicked with the
 // supplied error.
-func (l *logger) RecordCrash(err interface{}) {
+func (re *RunEnv) RecordCrash(err interface{}) {
 	evt := Event{
 		Type:       EventTypeFinish,
 		Outcome:    EventOutcomeCrashed,
 		Error:      fmt.Sprintf("%s", err),
 		Stacktrace: string(debug.Stack()),
 	}
-	l.logger.Error("", zap.Object("event", evt))
+	re.logger.Error("", zap.Object("event", evt))
+	if re.wapi != nil {
+		f := map[string]interface{}{
+			"type":    "instance.finish",
+			"outcome": "crash",
+			"error":   fmt.Sprintf("%s", err),
+		}
+		p := influxdb2.NewPoint("lifecycle", re.tags, f, time.Now())
+		re.wapi.WritePoint(p)
+	}
 }

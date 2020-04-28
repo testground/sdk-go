@@ -8,8 +8,10 @@ require (
 	github.com/go-redis/redis/v7 v7.2.0
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/influxdata/influxdb-client-go v1.1.0
+	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
 	github.com/prometheus/client_golang v1.5.1
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
+	github.com/stretchr/testify v1.4.0
 	go.uber.org/zap v1.14.1
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 )
