@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 type MetricType int
@@ -94,6 +96,12 @@ func NewMetric(name string, i interface{}) *Metric {
 		m = pools[t].Get().(*Metric)
 		s := v.Snapshot()
 		m.Measures["value"] = s.Value()
+
+	case metrics.Gauge:
+		t = MetricGauge
+		m = pools[t].Get().(*Metric)
+		s := v.Snapshot()
+		m.Measures["value"] = float64(s.Value())
 
 	case Histogram:
 		t = MetricHistogram

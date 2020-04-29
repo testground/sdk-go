@@ -36,14 +36,19 @@ type MetricsApi struct {
 	// freq is the frequency with which to materialize aggregated metrics.
 	freq time.Duration
 
+	// callbacks are callbacks functions to call on every tick.
+	callbacks []func(registry metrics.Registry)
+
 	wg           sync.WaitGroup
 	freqChangeCh chan time.Duration
 	doneCh       chan struct{}
 }
 
 type metricsApiOpts struct {
-	freq  time.Duration
-	sinks []MetricSinkFn
+	freq        time.Duration
+	preregister func(registry metrics.Registry)
+	callbacks   []func(registry metrics.Registry)
+	sinks       []MetricSinkFn
 }
 
 func newMetricsApi(re *RunEnv, opts metricsApiOpts) *MetricsApi {
@@ -52,8 +57,13 @@ func newMetricsApi(re *RunEnv, opts metricsApiOpts) *MetricsApi {
 		reg:          metrics.NewRegistry(),
 		sinks:        opts.sinks,
 		freq:         opts.freq,
+		callbacks:    opts.callbacks,
 		freqChangeCh: make(chan time.Duration),
 		doneCh:       make(chan struct{}),
+	}
+
+	if opts.preregister != nil {
+		opts.preregister(m.reg)
 	}
 
 	m.wg.Add(1)
@@ -92,6 +102,9 @@ func (m *MetricsApi) background() {
 	for {
 		select {
 		case <-c:
+			for _, a := range m.callbacks {
+				a(m.reg)
+			}
 			m.reg.Each(m.broadcast)
 
 		case f := <-m.freqChangeCh:

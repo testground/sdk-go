@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	client "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -110,9 +109,7 @@ func (re *RunEnv) RecordStart() {
 	}
 
 	re.logger.Info("", zap.Object("event", evt))
-	if re.batcher != nil {
-		re.recordEventInInfluxDB("instance.start", "", nil)
-	}
+	re.metrics.recordEvent(&evt)
 }
 
 // RecordSuccess records that the calling instance succeeded.
@@ -122,9 +119,7 @@ func (re *RunEnv) RecordSuccess() {
 		Outcome: EventOutcomeOK,
 	}
 	re.logger.Info("", zap.Object("event", evt))
-	if re.batcher != nil {
-		re.recordEventInInfluxDB("instance.success", "", nil)
-	}
+	re.metrics.recordEvent(&evt)
 }
 
 // RecordFailure records that the calling instance failed with the supplied
@@ -136,11 +131,7 @@ func (re *RunEnv) RecordFailure(err error) {
 		Error:   err.Error(),
 	}
 	re.logger.Info("", zap.Object("event", evt))
-	if re.batcher != nil {
-		re.recordEventInInfluxDB("instance.finish", "failed", map[string]interface{}{
-			"error": err.Error(),
-		})
-	}
+	re.metrics.recordEvent(&evt)
 }
 
 // RecordCrash records that the calling instance crashed/panicked with the
@@ -153,31 +144,5 @@ func (re *RunEnv) RecordCrash(err interface{}) {
 		Stacktrace: string(debug.Stack()),
 	}
 	re.logger.Error("", zap.Object("event", evt))
-	if re.batcher != nil {
-		re.recordEventInInfluxDB("instance.finish", "crash", map[string]interface{}{
-			"error": fmt.Sprintf("%s", err),
-		})
-	}
-}
-
-func (re *RunEnv) recordEventInInfluxDB(typ string, outcome string, f map[string]interface{}) {
-	// this map copy is terrible; the influxdb v2 SDK makes points mutable.
-	tags := make(map[string]string, len(re.tags)+1)
-	for k, v := range re.tags {
-		tags[k] = v
-	}
-	tags["type"] = typ
-	if outcome != "" {
-		tags["outcome"] = outcome
-	}
-
-	if f == nil {
-		f = map[string]interface{}{}
-	}
-
-	p, err := client.NewPoint("events", tags, f)
-	if err != nil {
-		re.RecordMessage("failed to create InfluxDB point: %s", err)
-	}
-	re.batcher.WritePoint(p)
+	re.metrics.recordEvent(&evt)
 }
