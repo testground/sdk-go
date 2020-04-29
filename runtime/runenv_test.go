@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -141,7 +140,7 @@ func TestAllEvents(t *testing.T) {
 	}
 }
 
-func TestDiagnosticsMetricsRecorded(t *testing.T) {
+func TestMetricsRecordedInFile(t *testing.T) {
 	test := func(f func(*RunEnv) *MetricsApi, file string) func(t *testing.T) {
 		return func(t *testing.T) {
 			re, cleanup := RandomTestRunEnv(t)
@@ -208,22 +207,71 @@ func TestDiagnosticsMetricsRecorded(t *testing.T) {
 }
 
 func TestDiagnosticsDispatchedToInfluxDB(t *testing.T) {
-	skipIfNoLocalInfluxDB(t)
+	InfluxBatching = false
+	tc := &testClient{}
+	TestInfluxDBClient = tc
 
 	re, cleanup := RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
 
 	re.D().RecordPoint("foo", 1234)
+	re.D().RecordPoint("foo", 1234)
+	re.D().RecordPoint("foo", 1234)
+	re.D().RecordPoint("foo", 1234)
+
+	require := require.New(t)
+
+	tc.RLock()
+	require.Len(tc.batchPoints, 4)
+	tc.RUnlock()
+
+	re.D().SetFrequency(500 * time.Millisecond)
+	re.D().NewCounter("counter").Inc(100)
+	re.D().NewHistogram("histogram1", re.D().NewUniformSample(100)).Update(123)
+
+	time.Sleep(1500 * time.Millisecond)
+
+	tc.RLock()
+	if l := len(tc.batchPoints); l != 6 && l != 8 && l != 10 {
+		t.Fatalf("expected length to be 6, 8, or 10; was: %d", l)
+	}
+	tc.RUnlock()
 
 	_ = re.Close()
 }
 
-func skipIfNoLocalInfluxDB(t *testing.T) {
-	if client, err := NewInfluxDBClient(); err != nil {
-		t.Skip()
-	} else {
-		client.Close()
-		setup, err := client.Setup(context.Background(), "foo", "foo", "testground", "foo", 0)
-		fmt.Println(setup, err)
-	}
+func TestResultsDispatchedOnClose(t *testing.T) {
+	InfluxBatching = false
+	tc := &testClient{}
+	TestInfluxDBClient = tc
+
+	re, cleanup := RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
+
+	re.R().RecordPoint("foo", 1234)
+	re.R().RecordPoint("foo", 1234)
+	re.R().RecordPoint("foo", 1234)
+	re.R().RecordPoint("foo", 1234)
+
+	require := require.New(t)
+
+	tc.RLock()
+	require.Empty(tc.batchPoints)
+	tc.RUnlock()
+
+	re.R().SetFrequency(500 * time.Millisecond)
+	re.R().NewCounter("counter").Inc(100)
+	re.R().NewHistogram("histogram1", re.D().NewUniformSample(100)).Update(123)
+
+	time.Sleep(1500 * time.Millisecond)
+
+	tc.RLock()
+	require.Empty(tc.batchPoints)
+	tc.RUnlock()
+
+	_ = re.Close()
+
+	tc.RLock()
+	require.NotEmpty(tc.batchPoints)
+	tc.RUnlock()
 }

@@ -19,7 +19,7 @@ type (
 	Point     float64
 )
 
-type SinkFn func(m *Metric) error
+type MetricSinkFn func(m *Metric) error
 
 type MetricsApi struct {
 	// re is the RunEnv this MetricsApi object is attached to.
@@ -31,7 +31,7 @@ type MetricsApi struct {
 	// sinks to invoke when a new observation has been made.
 	//  1) data points are sent immediately.
 	//  2) aggregated metrics are sent periodically, based on freq.
-	sinks []SinkFn
+	sinks []MetricSinkFn
 
 	// freq is the frequency with which to materialize aggregated metrics.
 	freq time.Duration
@@ -43,7 +43,7 @@ type MetricsApi struct {
 
 type metricsApiOpts struct {
 	freq  time.Duration
-	sinks []SinkFn
+	sinks []MetricSinkFn
 }
 
 func newMetricsApi(re *RunEnv, opts metricsApiOpts) *MetricsApi {
@@ -111,7 +111,7 @@ func (m *MetricsApi) broadcast(name string, obj interface{}) {
 
 	for _, sink := range m.sinks {
 		if err := sink(metric); err != nil {
-			m.re.RecordMessage("failed to emit aggregated metric: %s", err)
+			m.re.RecordMessage("failed to emit metric: %s", err)
 		}
 	}
 }

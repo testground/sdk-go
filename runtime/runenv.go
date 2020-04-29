@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -10,8 +9,24 @@ import (
 
 	"github.com/avast/retry-go"
 	"github.com/hashicorp/go-multierror"
-	influxdb2 "github.com/influxdata/influxdb-client-go"
+	_ "github.com/influxdata/influxdb1-client" // this is important because of the bug in go mod
+	client "github.com/influxdata/influxdb1-client/v2"
 	"go.uber.org/zap"
+)
+
+var (
+	InfluxBatching       = true
+	InfluxBatchLength    = 128
+	InfluxBatchInterval  = 1 * time.Second
+	InfluxBatchRetryOpts = func(re *RunEnv) []retry.Option {
+		return []retry.Option{
+			retry.Attempts(5),
+			retry.Delay(500 * time.Millisecond),
+			retry.OnRetry(func(n uint, err error) {
+				re.RecordMessage("failed to send batch to InfluxDB; attempt %d; err: %s", n, err)
+			}),
+		}
+	}
 )
 
 // RunEnv encapsulates the context for this test run.
@@ -22,8 +37,8 @@ type RunEnv struct {
 
 	diagnostics *MetricsApi
 	results     *MetricsApi
-	influxdb    influxdb2.InfluxDBClient
-	wapi        influxdb2.WriteApi
+	influxdb    client.Client
+	batcher     Batcher
 	tags        map[string]string
 
 	wg        sync.WaitGroup
@@ -58,8 +73,8 @@ func NewRunEnv(params RunParams) *RunEnv {
 	re.wg.Add(1)
 	go re.manageAssets()
 
-	var dsinks = []SinkFn{LogSinkJSON(re, "diagnostics.out")}
-	client, err := NewInfluxDBClient()
+	var dsinks = []MetricSinkFn{LogSinkJSON(re, "diagnostics.out")}
+	client, err := NewInfluxDBClient(re)
 	if err == nil {
 		re.tags = map[string]string{
 			"plan":     re.TestPlan,
@@ -69,11 +84,13 @@ func NewRunEnv(params RunParams) *RunEnv {
 		}
 
 		re.influxdb = client
-		re.wapi = client.WriteApi("testground", "diagnostics")
-		dsinks = append(dsinks, WriteToInfluxDB(re))
+		if InfluxBatching {
+			re.batcher = newBatcher(re, client, InfluxBatchLength, InfluxBatchInterval, InfluxBatchRetryOpts(re)...)
+		} else {
+			re.batcher = &nilBatcher{client}
+		}
 
-		re.wg.Add(1)
-		go re.monitorInfluxDBErrors()
+		dsinks = append(dsinks, WriteToInfluxDBSink(re, "diagnostics"))
 	} else {
 		re.RecordMessage("InfluxDB unavailable; no metrics will be dispatched: %s", err)
 	}
@@ -85,7 +102,7 @@ func NewRunEnv(params RunParams) *RunEnv {
 
 	re.results = newMetricsApi(re, metricsApiOpts{
 		freq:  1 * time.Second,
-		sinks: []SinkFn{LogSinkJSON(re, "results.out")},
+		sinks: []MetricSinkFn{LogSinkJSON(re, "results.out")},
 	})
 
 	return re
@@ -99,22 +116,6 @@ func (re *RunEnv) R() *MetricsApi {
 // D returns a metrics object for diagnostics.
 func (re *RunEnv) D() *MetricsApi {
 	return re.diagnostics
-}
-
-func (re *RunEnv) monitorInfluxDBErrors() {
-	defer re.wg.Done()
-
-	for {
-		select {
-		case err := <-re.wapi.Errors():
-			if err == nil {
-				continue
-			}
-			re.RecordMessage("failed while writing to InfluxDB: %s", err)
-		case <-re.closeCh:
-			return
-		}
-	}
 }
 
 func (re *RunEnv) manageAssets() {
@@ -152,20 +153,18 @@ func (re *RunEnv) Close() error {
 	err = multierror.Append(re.results.Close())
 
 	if re.influxdb != nil {
-		// Next, we reopen the results.out file, and upload all points to InfluxDB
-		// using the blocking API.
-		results, err2 := os.OpenFile(filepath.Join(re.TestOutputsPath, "results.out"), os.O_RDONLY, 0666)
-		if err2 == nil {
-			// batchInsertInfluxDB will record errors via runenv.RecordMessage().
-			err2 = re.batchInsertInfluxDB(results)
+		// Next, we reopen the results.out file, and write all points to InfluxDB.
+		results := filepath.Join(re.TestOutputsPath, "results.out")
+		if file, errf := os.OpenFile(results, os.O_RDONLY, 0666); errf == nil {
+			err = multierror.Append(err, re.batchInsertInfluxDB(file))
+		} else {
+			err = multierror.Append(err, errf)
 		}
-		err = multierror.Append(err, err2)
 	}
 
 	// Flush the immediate InfluxDB writer.
-	if re.wapi != nil {
-		re.wapi.Flush()
-		re.wapi.Close()
+	if re.batcher != nil {
+		err = multierror.Append(err, re.batcher.Close())
 	}
 
 	// This close stops monitoring the wapi errors channel, and closes assets.
@@ -175,7 +174,7 @@ func (re *RunEnv) Close() error {
 
 	// Now we're ready to close InfluxDB.
 	if re.influxdb != nil {
-		re.influxdb.Close()
+		err = multierror.Append(err, re.influxdb.Close())
 	}
 
 	if l := re.logger; l != nil {
@@ -186,12 +185,8 @@ func (re *RunEnv) Close() error {
 }
 
 func (re *RunEnv) batchInsertInfluxDB(results *os.File) error {
-	var (
-		count  int
-		points []*influxdb2.Point
-	)
+	sink := WriteToInfluxDBSink(re, "results")
 
-	wapib := re.influxdb.WriteApiBlocking("testground", "results")
 	for dec := json.NewDecoder(results); dec.More(); {
 		var m Metric
 		if err := dec.Decode(&m); err != nil {
@@ -199,33 +194,8 @@ func (re *RunEnv) batchInsertInfluxDB(results *os.File) error {
 			continue
 		}
 
-		// NewPoint copies all tags and fields, so this is thread-safe.
-		p := influxdb2.NewPoint(m.Name, re.tags, m.Measures, time.Unix(0, m.Timestamp))
-		p.AddTag("type", m.Type.String())
-		points = append(points, p)
-		count++
-
-		// upload a batch every 500 points, or if this is the last point.
-		if count%500 == 0 || !dec.More() {
-			logger := func(n uint, err error) {
-				re.RecordMessage("failed to upload result points on attempt %d to InfluxDB: %s", n, err)
-			}
-
-			write := func() error {
-				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				defer cancel()
-
-				return wapib.WritePoint(ctx, points...)
-			}
-
-			// retry 5 times, with a delay of 1 seconds, and the default jitter, logging each attempt
-			// into the runenv.
-			err := retry.Do(write, retry.Attempts(5), retry.Delay(1*time.Second), retry.OnRetry(logger))
-
-			if err != nil {
-				re.RecordMessage("failed completely to upload a batch of result points to InfluxDB: %s", err)
-			}
-			points = points[:0]
+		if err := sink(&m); err != nil {
+			re.RecordMessage("failed to process Metric from results.out: %s", err)
 		}
 	}
 	return nil
