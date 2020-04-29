@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -130,16 +131,15 @@ func (m *Metrics) logSinkJSON(filename string) MetricSinkFn {
 	}
 }
 
-func (m *Metrics) writeToInfluxDBSink(collection string) MetricSinkFn {
-	return func(me *Metric) error {
-		// this map copy is terrible; the influxdb v2 SDK makes points mutable.
-		tags := make(map[string]string, len(m.tags)+1)
-		for k, v := range m.tags {
-			tags[k] = v
+func (m *Metrics) writeToInfluxDBSink(measurement string) MetricSinkFn {
+	return func(metric *Metric) error {
+		fields := make(map[string]interface{}, len(metric.Measures))
+		for k, v := range metric.Measures {
+			key := strings.Join([]string{metric.Name, metric.Type.String(), k}, ".")
+			fields[key] = v
 		}
-		tags["metric"] = me.Name
 
-		p, err := client.NewPoint(collection, tags, me.Measures, time.Unix(0, me.Timestamp))
+		p, err := client.NewPoint(measurement, m.tags, fields, time.Unix(0, metric.Timestamp))
 		if err != nil {
 			return err
 		}

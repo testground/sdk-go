@@ -82,6 +82,9 @@ func (b *batcher) background() {
 		case err := <-b.sendRes:
 			if err == nil {
 				b.pending = b.pending[len(b.sending):]
+				b.re.RecordMessage("influxdb: uploaded %d points", len(b.sending))
+			} else {
+				b.re.RecordMessage("influxdb: failed to upload %d points; err: %s", len(b.sending), err)
 			}
 			b.sending = nil
 			if len(b.pending) >= b.length {
@@ -110,6 +113,9 @@ func (b *batcher) background() {
 				// we are currently sending, wait for the send to finish first.
 				if err := <-b.sendRes; err == nil {
 					b.pending = b.pending[len(b.sending):]
+					b.re.RecordMessage("influxdb: uploaded %d points", len(b.sending))
+				} else {
+					b.re.RecordMessage("influxdb: failed to upload %d points; err: %s", len(b.sending), err)
 				}
 			}
 
@@ -119,6 +125,12 @@ func (b *batcher) background() {
 				b.sending = b.pending
 				go b.send()
 				err = <-b.sendRes
+				if err == nil {
+					b.re.RecordMessage("influxdb: uploaded %d points", len(b.sending))
+				} else {
+					b.re.RecordMessage("influxdb: failed to upload %d points; err: %s", len(b.sending), err)
+				}
+				b.sending = nil
 			}
 			b.doneErr <- err
 			return
