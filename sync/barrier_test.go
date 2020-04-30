@@ -6,13 +6,16 @@ import (
 	"time"
 
 	"golang.org/x/sync/errgroup"
+
+	"github.com/testground/sdk-go/runtime"
 )
 
 func TestBarrier(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	runenv := randomRunEnv()
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -44,7 +47,8 @@ func TestBarrierBeyondTarget(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	runenv := randomRunEnv()
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -71,7 +75,8 @@ func TestBarrierZero(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	runenv := randomRunEnv()
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -97,7 +102,8 @@ func TestBarrierCancel(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	runenv := randomRunEnv()
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -124,7 +130,8 @@ func TestBarrierDeadline(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	runenv := randomRunEnv()
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -153,7 +160,8 @@ func TestSignalAndWait(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	runenv := randomRunEnv()
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -175,7 +183,8 @@ func TestSignalAndWait(t *testing.T) {
 }
 
 func TestSignalAndWaitTimeout(t *testing.T) {
-	runenv := randomRunEnv()
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
 
 	client, err := NewBoundClient(context.Background(), runenv)
 	if err != nil {

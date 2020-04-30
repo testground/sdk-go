@@ -2,18 +2,14 @@ package sync
 
 import (
 	"context"
-	"crypto/sha1"
 	"fmt"
 	"math/rand"
-	"net"
 	"os"
 	"os/exec"
 	"testing"
 	"time"
 
 	"go.uber.org/zap"
-
-	"github.com/testground/sdk-go/runtime"
 )
 
 func TestMain(m *testing.M) {
@@ -71,25 +67,4 @@ func ensureRedis() (func() error, error) {
 		}
 		return nil
 	}, nil
-}
-
-// randomRunEnv generates a random RunEnv for testing purposes.
-func randomRunEnv() *runtime.RunEnv {
-	b := make([]byte, 32)
-	_, _ = rand.Read(b)
-
-	_, subnet, _ := net.ParseCIDR("127.1.0.1/16")
-
-	return runtime.NewRunEnv(runtime.RunParams{
-		TestPlan:           fmt.Sprintf("testplan-%d", rand.Uint32()),
-		TestSidecar:        false,
-		TestCase:           fmt.Sprintf("testcase-%d", rand.Uint32()),
-		TestRun:            fmt.Sprintf("testrun-%d", rand.Uint32()),
-		TestRepo:           "github.com/ipfs/go-ipfs",
-		TestSubnet:         &runtime.IPNet{IPNet: *subnet},
-		TestCommit:         fmt.Sprintf("%x", sha1.Sum(b)),
-		TestInstanceCount:  int(1 + (rand.Uint32() % 999)),
-		TestInstanceRole:   "",
-		TestInstanceParams: make(map[string]string),
-	})
 }
