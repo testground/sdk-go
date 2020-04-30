@@ -9,7 +9,7 @@ import (
 	client "github.com/influxdata/influxdb1-client/v2"
 )
 
-const EnvInfluxDBAddr = "INFLUXDB_ADDR"
+const EnvInfluxDBURL = "INFLUXDB_URL"
 
 var (
 	// TestInfluxDBClient sets a client for testing. If this value is set,
@@ -22,9 +22,9 @@ func NewInfluxDBClient(re *RunEnv) (client.Client, error) {
 		return TestInfluxDBClient, nil
 	}
 
-	addr := os.Getenv(EnvInfluxDBAddr)
+	addr := os.Getenv(EnvInfluxDBURL)
 	if addr == "" {
-		return nil, fmt.Errorf("no InfluxDB address in $%s env var", EnvInfluxDBAddr)
+		return nil, fmt.Errorf("no InfluxDB URL in $%s env var", EnvInfluxDBURL)
 	}
 
 	cfg := client.HTTPConfig{Addr: addr, Timeout: 5 * time.Second}
