@@ -6,13 +6,12 @@ jobs:
       - image: circleci/golang:1.14
     steps:
       - checkout
-      - run: mkdir -p $TEST_RESULTS
       - restore_cache:
           keys:
             - v1-pkg-cache
       - run:
           name: Tidy
-          command: go mod tidy
+          command: go mod tidy && git diff --exit-code
       - run:
           name: Test
           command: make test ./...
