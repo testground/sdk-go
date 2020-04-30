@@ -149,9 +149,9 @@ func TestMetricsRecordedInFile(t *testing.T) {
 			api.SetFrequency(200 * time.Millisecond)
 			api.RecordPoint("point1", 123)
 			api.RecordPoint("point2", 123)
-			api.NewCounter("counter1").Inc(50)
-			api.NewMeter("meter1").Mark(50)
-			api.NewTimer("timer1").Update(5 * time.Second)
+			api.Counter("counter1").Inc(50)
+			api.Meter("meter1").Mark(50)
+			api.Timer("timer1").Update(5 * time.Second)
 
 			time.Sleep(1 * time.Second)
 
@@ -222,8 +222,8 @@ func TestDiagnosticsDispatchedToInfluxDB(t *testing.T) {
 	tc.RUnlock()
 
 	re.D().SetFrequency(500 * time.Millisecond)
-	re.D().NewCounter("counter").Inc(100)
-	re.D().NewHistogram("histogram1", re.D().NewUniformSample(100)).Update(123)
+	re.D().Counter("counter").Inc(100)
+	re.D().Histogram("histogram1", re.D().NewUniformSample(100)).Update(123)
 
 	time.Sleep(1500 * time.Millisecond)
 
@@ -256,8 +256,8 @@ func TestResultsDispatchedOnClose(t *testing.T) {
 	tc.RUnlock()
 
 	re.R().SetFrequency(500 * time.Millisecond)
-	re.R().NewCounter("counter").Inc(100)
-	re.R().NewHistogram("histogram1", re.D().NewUniformSample(100)).Update(123)
+	re.R().Counter("counter").Inc(100)
+	re.R().Histogram("histogram1", re.D().NewUniformSample(100)).Update(123)
 
 	time.Sleep(1500 * time.Millisecond)
 
@@ -282,7 +282,7 @@ func TestFrequencyChange(t *testing.T) {
 
 	// set an abnormally high frequency to verify that no points are produced.
 	re.D().SetFrequency(24 * time.Hour)
-	counter := re.D().NewCounter("foo")
+	counter := re.D().Counter("foo")
 	counter.Inc(100)
 
 	require := require.New(t)

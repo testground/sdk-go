@@ -144,31 +144,31 @@ func (m *MetricsApi) RecordPoint(name string, value float64) {
 	m.broadcast(name, Point(value))
 }
 
-func (m *MetricsApi) NewCounter(name string) Counter {
+func (m *MetricsApi) Counter(name string) Counter {
 	return m.reg.GetOrRegister(name, metrics.NewCounter()).(metrics.Counter)
 }
 
-func (m *MetricsApi) NewEWMA(name string, alpha float64) EWMA {
+func (m *MetricsApi) EWMA(name string, alpha float64) EWMA {
 	return m.reg.GetOrRegister(name, metrics.NewEWMA(alpha)).(metrics.EWMA)
 }
 
-func (m *MetricsApi) NewGauge(name string) Gauge {
+func (m *MetricsApi) Gauge(name string) Gauge {
 	return m.reg.GetOrRegister(name, metrics.NewGaugeFloat64()).(metrics.GaugeFloat64)
 }
 
-func (m *MetricsApi) NewFunctionalGauge(name string, f func() float64) Gauge {
+func (m *MetricsApi) GaugeFunctional(name string, f func() float64) Gauge {
 	return m.reg.GetOrRegister(name, metrics.NewFunctionalGaugeFloat64(f)).(metrics.GaugeFloat64)
 }
 
-func (m *MetricsApi) NewHistogram(name string, s Sample) Histogram {
+func (m *MetricsApi) Histogram(name string, s Sample) Histogram {
 	return m.reg.GetOrRegister(name, metrics.NewHistogram(s)).(metrics.Histogram)
 }
 
-func (m *MetricsApi) NewMeter(name string) Meter {
+func (m *MetricsApi) Meter(name string) Meter {
 	return m.reg.GetOrRegister(name, metrics.NewMeter()).(metrics.Meter)
 }
 
-func (m *MetricsApi) NewTimer(name string) Timer {
+func (m *MetricsApi) Timer(name string) Timer {
 	return m.reg.GetOrRegister(name, metrics.NewTimer()).(metrics.Timer)
 }
 
