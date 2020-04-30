@@ -13,10 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	_ = os.Setenv("INFLUXDB_URL", "http://localhost:9999")
-}
-
 func TestParseKeyValues(t *testing.T) {
 	type args struct {
 		in []string
