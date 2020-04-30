@@ -156,7 +156,7 @@ func (m *MetricsApi) Gauge(name string) Gauge {
 	return m.reg.GetOrRegister(name, metrics.NewGaugeFloat64()).(metrics.GaugeFloat64)
 }
 
-func (m *MetricsApi) GaugeFunctional(name string, f func() float64) Gauge {
+func (m *MetricsApi) GaugeF(name string, f func() float64) Gauge {
 	return m.reg.GetOrRegister(name, metrics.NewFunctionalGaugeFloat64(f)).(metrics.GaugeFloat64)
 }
 
