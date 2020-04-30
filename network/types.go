@@ -1,13 +1,10 @@
-package sync
+package network
 
 import (
-	"context"
-	"fmt"
 	"net"
-	"reflect"
 	"time"
 
-	"github.com/testground/sdk-go/runtime"
+	"github.com/testground/sdk-go/sync"
 )
 
 type FilterAction int
@@ -66,7 +63,7 @@ type LinkRule struct {
 }
 
 // NetworkConfig specifies how a node's network should be configured.
-type NetworkConfig struct {
+type Config struct {
 	// Network is the name of the network to configure
 	Network string
 
@@ -87,49 +84,20 @@ type NetworkConfig struct {
 	Default LinkShape
 
 	// Rules defines how traffic should be shaped to different subnets.
+	//
 	// TODO: This is not implemented.
 	Rules []LinkRule
 
-	// State will be signaled when the link changes are applied. Nodes can
-	// use the same state to wait for _all_ nodes to enter the desired
-	// network state.
-	State State
-}
+	// CallbackState will be signalled when the link changes are applied.
+	//
+	// Nodes can use the same state to wait for _all_ or a subset of nodes to
+	// enter the desired network state. See CallbackTarget.
+	CallbackState sync.State `json:"State"`
 
-// NetworkTopic represents a subtree through which tests runs can communicate
-// with their sidecar. Use this communication channel to setup the networking.
-// Create this structure using NetworkSubtree(hostname)
-func NetworkTopic(container string) *Topic {
-	return &Topic{
-		name: "network:" + container,
-		typ:  reflect.TypeOf(&NetworkConfig{}),
-	}
-}
-
-const (
-	// magic values that we monitor on the Testground runner side to detect when Testground
-	// testplan instances are initialised and at the stage of actually running a test
-	// check cluster_k8s.go for more information
-	NetworkInitialisationSuccessful = "network initialisation successful"
-	NetworkInitialisationFailed     = "network initialisation failed"
-)
-
-// WaitNetworkInitialized waits for the sidecar to initialize the network, if
-// the sidecar is enabled.
-func (c *Client) WaitNetworkInitialized(ctx context.Context, runenv *runtime.RunEnv) error {
-	rp := c.extractor(ctx)
-	if rp == nil {
-		return ErrNoRunParameters
-	}
-
-	if rp.TestSidecar {
-		b, err := c.Barrier(ctx, "network-initialized", rp.TestInstanceCount)
-		if err != nil {
-			runenv.RecordMessage(NetworkInitialisationFailed)
-			return fmt.Errorf("failed to initialize network: %w", err)
-		}
-		<-b.C
-	}
-	runenv.RecordMessage(NetworkInitialisationSuccessful)
-	return nil
+	// CallbackTarget is the amount of instances that will have needed to signal
+	// on the Callback state to consider the configuration operation a success.
+	//
+	// A zero value falls back to runenv.TestInstanceCount (i.e. all instances
+	// participating in the test run).
+	CallbackTarget int `json:"-"`
 }
