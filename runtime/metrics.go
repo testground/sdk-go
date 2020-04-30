@@ -1,171 +1,177 @@
 package runtime
 
 import (
-	"context"
-	"io"
-	"net/http"
+	"encoding/json"
 	"os"
-	"path"
-	"strconv"
+	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-)
-
-// Type aliases to hide implementation details in the APIs.
-type (
-	Counter   = prometheus.Counter
-	Gauge     = prometheus.Gauge
-	Histogram = prometheus.Histogram
-	Summary   = prometheus.Summary
-
-	CounterOpts   = prometheus.CounterOpts
-	GaugeOpts     = prometheus.GaugeOpts
-	HistogramOpts = prometheus.HistogramOpts
-	SummaryOpts   = prometheus.SummaryOpts
-
-	CounterVec   = prometheus.CounterVec
-	GaugeVec     = prometheus.GaugeVec
-	HistogramVec = prometheus.HistogramVec
-	SummaryVec   = prometheus.SummaryVec
+	"github.com/hashicorp/go-multierror"
+	_ "github.com/influxdata/influxdb1-client"
+	client "github.com/influxdata/influxdb1-client/v2"
+	"github.com/rcrowley/go-metrics"
 )
 
 type Metrics struct {
-	runenv *RunEnv
+	re          *RunEnv
+	diagnostics *MetricsApi
+	results     *MetricsApi
+	influxdb    client.Client
+	batcher     Batcher
+	tags        map[string]string
 }
 
-func (*Metrics) NewCounter(o CounterOpts) Counter {
-	m := prometheus.NewCounter(o)
-	switch err := prometheus.Register(m); err.(type) {
-	case nil, prometheus.AlreadyRegisteredError:
-	default:
-		panic(err)
-	}
-	return m
-}
+func newMetrics(re *RunEnv) *Metrics {
+	m := &Metrics{re: re}
 
-func (*Metrics) NewGauge(o GaugeOpts) Gauge {
-	m := prometheus.NewGauge(o)
-	switch err := prometheus.Register(m); err.(type) {
-	case nil, prometheus.AlreadyRegisteredError:
-	default:
-		panic(err)
-	}
-	return m
-}
-
-func (*Metrics) NewHistogram(o HistogramOpts) Histogram {
-	m := prometheus.NewHistogram(o)
-	switch err := prometheus.Register(m); err.(type) {
-	case nil, prometheus.AlreadyRegisteredError:
-	default:
-		panic(err)
-	}
-	return m
-}
-
-func (*Metrics) NewSummary(o SummaryOpts) Summary {
-	m := prometheus.NewSummary(o)
-	switch err := prometheus.Register(m); err.(type) {
-	case nil, prometheus.AlreadyRegisteredError:
-	default:
-		panic(err)
-	}
-	return m
-}
-
-func (*Metrics) NewCounterVec(o CounterOpts, labels ...string) *CounterVec {
-	m := prometheus.NewCounterVec(o, labels)
-	switch err := prometheus.Register(m); err.(type) {
-	case nil, prometheus.AlreadyRegisteredError:
-	default:
-		panic(err)
-	}
-	return m
-}
-
-func (*Metrics) NewGaugeVec(o GaugeOpts, labels ...string) *GaugeVec {
-	m := prometheus.NewGaugeVec(o, labels)
-	switch err := prometheus.Register(m); err.(type) {
-	case nil, prometheus.AlreadyRegisteredError:
-	default:
-		panic(err)
-	}
-	return m
-}
-
-func (*Metrics) NewHistogramVec(o HistogramOpts, labels ...string) *HistogramVec {
-	m := prometheus.NewHistogramVec(o, labels)
-	switch err := prometheus.Register(m); err.(type) {
-	case nil, prometheus.AlreadyRegisteredError:
-	default:
-		panic(err)
-	}
-	return m
-}
-
-func (*Metrics) NewSummaryVec(o SummaryOpts, labels ...string) *SummaryVec {
-	m := prometheus.NewSummaryVec(o, labels)
-	switch err := prometheus.Register(m); err.(type) {
-	case nil, prometheus.AlreadyRegisteredError:
-	default:
-		panic(err)
-	}
-	return m
-}
-
-// HTTPPeriodicSnapshots periodically fetches the snapshots from the given address
-// and outputs them to the out directory. Every file will be in the format timestamp.out.
-func (re *RunEnv) HTTPPeriodicSnapshots(ctx context.Context, addr string, dur time.Duration, outDir string) error {
-	err := os.MkdirAll(path.Join(re.TestOutputsPath, outDir), 0777)
-	if err != nil {
-		return err
-	}
-
-	nextFile := func() (*os.File, error) {
-		timestamp := strconv.FormatInt(time.Now().Unix(), 10)
-		return os.Create(path.Join(re.TestOutputsPath, outDir, timestamp+".out"))
-	}
-
-	go func() {
-		ticker := time.NewTicker(dur)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				func() {
-					req, err := http.NewRequestWithContext(ctx, "GET", addr, nil)
-					if err != nil {
-						re.RecordMessage("error while creating http request: %v", err)
-						return
-					}
-
-					resp, err := http.DefaultClient.Do(req)
-					if err != nil {
-						re.RecordMessage("error while scraping http endpoint: %v", err)
-						return
-					}
-					defer resp.Body.Close()
-
-					file, err := nextFile()
-					if err != nil {
-						re.RecordMessage("error while getting metrics output file: %v", err)
-						return
-					}
-					defer file.Close()
-
-					_, err = io.Copy(file, resp.Body)
-					if err != nil {
-						re.RecordMessage("error while copying data to file: %v", err)
-						return
-					}
-				}()
-			}
+	var dsinks = []MetricSinkFn{m.logSinkJSON("diagnostics.out")}
+	if client, err := NewInfluxDBClient(re); err == nil {
+		m.tags = map[string]string{
+			"plan":     re.TestPlan,
+			"case":     re.TestCase,
+			"run":      re.TestRun,
+			"group_id": re.TestGroupID,
 		}
-	}()
 
+		m.influxdb = client
+		if InfluxBatching {
+			m.batcher = newBatcher(re, client, InfluxBatchLength, InfluxBatchInterval, InfluxBatchRetryOpts(re)...)
+		} else {
+			m.batcher = &nilBatcher{client}
+		}
+
+		dsinks = append(dsinks, m.writeToInfluxDBSink("diagnostics"))
+	} else {
+		re.RecordMessage("InfluxDB unavailable; no metrics will be dispatched: %s", err)
+	}
+
+	m.diagnostics = newMetricsApi(re, metricsApiOpts{
+		freq:        5 * time.Second,
+		preregister: metrics.RegisterRuntimeMemStats,
+		callbacks:   []func(metrics.Registry){metrics.CaptureRuntimeMemStatsOnce},
+		sinks:       dsinks,
+	})
+
+	m.results = newMetricsApi(re, metricsApiOpts{
+		freq:  1 * time.Second,
+		sinks: []MetricSinkFn{m.logSinkJSON("results.out")},
+	})
+
+	return m
+}
+
+func (m *Metrics) R() *MetricsApi {
+	return m.results
+}
+
+func (m *Metrics) D() *MetricsApi {
+	return m.diagnostics
+}
+
+func (m *Metrics) Close() error {
+	var err *multierror.Error
+
+	// close diagnostics; this stops the ticker and any further observations on
+	// runenv.D() will fail/panic.
+	err = multierror.Append(err, m.diagnostics.Close())
+
+	// close results; no more results via runenv.R() can be recorded.
+	err = multierror.Append(err, m.results.Close())
+
+	if m.influxdb != nil {
+		// Next, we reopen the results.out file, and write all points to InfluxDB.
+		results := filepath.Join(m.re.TestOutputsPath, "results.out")
+		if file, errf := os.OpenFile(results, os.O_RDONLY, 0666); errf == nil {
+			err = multierror.Append(err, m.batchInsertInfluxDB(file))
+		} else {
+			err = multierror.Append(err, errf)
+		}
+	}
+
+	// Flush the immediate InfluxDB writer.
+	if m.batcher != nil {
+		err = multierror.Append(err, m.batcher.Close())
+	}
+
+	// Now we're ready to close InfluxDB.
+	if m.influxdb != nil {
+		err = multierror.Append(err, m.influxdb.Close())
+	}
+
+	return err.ErrorOrNil()
+}
+
+func (m *Metrics) batchInsertInfluxDB(results *os.File) error {
+	sink := m.writeToInfluxDBSink("results")
+
+	for dec := json.NewDecoder(results); dec.More(); {
+		var me Metric
+		if err := dec.Decode(&me); err != nil {
+			m.re.RecordMessage("failed to decode Metric from results.out: %s", err)
+			continue
+		}
+
+		if err := sink(&me); err != nil {
+			m.re.RecordMessage("failed to process Metric from results.out: %s", err)
+		}
+	}
 	return nil
+}
+
+func (m *Metrics) logSinkJSON(filename string) MetricSinkFn {
+	f, err := m.re.CreateRawAsset(filename)
+	if err != nil {
+		panic(err)
+	}
+
+	enc := json.NewEncoder(f)
+	return func(m *Metric) error {
+		return enc.Encode(m)
+	}
+}
+
+func (m *Metrics) writeToInfluxDBSink(measurement string) MetricSinkFn {
+	return func(metric *Metric) error {
+		fields := make(map[string]interface{}, len(metric.Measures))
+		for k, v := range metric.Measures {
+			key := strings.Join([]string{metric.Name, metric.Type.String(), k}, ".")
+			fields[key] = v
+		}
+
+		p, err := client.NewPoint(measurement, m.tags, fields, time.Unix(0, metric.Timestamp))
+		if err != nil {
+			return err
+		}
+		m.batcher.WritePoint(p)
+		return nil
+	}
+}
+
+func (m *Metrics) recordEvent(evt *Event) {
+	if m.influxdb == nil {
+		return
+	}
+
+	// this map copy is terrible; the influxdb v2 SDK makes points mutable.
+	tags := make(map[string]string, len(m.tags)+1)
+	for k, v := range m.tags {
+		tags[k] = v
+	}
+
+	tags["type"] = string(evt.Type)
+
+	if evt.Outcome != "" {
+		tags["outcome"] = string(evt.Outcome)
+	}
+
+	f := map[string]interface{}{
+		"error": evt.Error,
+	}
+
+	p, err := client.NewPoint("events", tags, f)
+	if err != nil {
+		m.re.RecordMessage("failed to create InfluxDB point: %s", err)
+	}
+	m.batcher.WritePoint(p)
 }

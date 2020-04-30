@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/testground/sdk-go/runtime"
 )
 
 func TestGC(t *testing.T) {
@@ -15,7 +17,8 @@ func TestGC(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	runenv := randomRunEnv()
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {

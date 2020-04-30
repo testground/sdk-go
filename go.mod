@@ -3,13 +3,17 @@ module github.com/testground/sdk-go
 go 1.14
 
 require (
-	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
-	github.com/alicebob/miniredis v2.5.0+incompatible
+	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/go-redis/redis/v7 v7.2.0
-	github.com/gomodule/redigo v1.8.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.0
+	github.com/influxdata/influxdb1-client v0.0.0-20191209144304-8bf82d3c094d
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.5.1
-	github.com/yuin/gopher-lua v0.0.0-20191220021717-ab39c6098bdb // indirect
+	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
+	github.com/stretchr/testify v1.4.0
 	go.uber.org/zap v1.14.1
+	golang.org/x/net v0.0.0-20191112182307-2180aed22343 // indirect
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
+	golang.org/x/tools v0.0.0-20191125144606-a911d9008d1f // indirect
 )

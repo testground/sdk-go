@@ -8,29 +8,15 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type logger struct {
-	runenv *RunParams
-
-	// TODO: we'll want different kinds of loggers.
-	logger  *zap.Logger
-	slogger *zap.SugaredLogger
-}
-
-func newLogger(runenv *RunParams) *logger {
-	l := &logger{runenv: runenv}
-	l.init()
-	return l
-}
-
-func (l *logger) init() {
+func (re *RunEnv) initLogger() {
 	level := zap.NewAtomicLevel()
 
 	if lvl := os.Getenv("LOG_LEVEL"); lvl != "" {
 		if err := level.UnmarshalText([]byte(lvl)); err != nil {
 			defer func() {
 				// once the logger is defined...
-				if l.slogger != nil {
-					l.slogger.Errorf("failed to decode log level '%q': %s", l, err)
+				if re.logger != nil {
+					re.logger.Sugar().Errorf("failed to decode log level '%q': %s", lvl, err)
 				}
 			}()
 		}
@@ -39,8 +25,8 @@ func (l *logger) init() {
 	}
 
 	paths := []string{"stdout"}
-	if l.runenv.TestOutputsPath != "" {
-		paths = append(paths, filepath.Join(l.runenv.TestOutputsPath, "run.out"))
+	if re.TestOutputsPath != "" {
+		paths = append(paths, filepath.Join(re.TestOutputsPath, "run.out"))
 	}
 
 	cfg := zap.Config{
@@ -51,8 +37,8 @@ func (l *logger) init() {
 		OutputPaths:       paths,
 		Encoding:          "json",
 		InitialFields: map[string]interface{}{
-			"run_id":   l.runenv.TestRun,
-			"group_id": l.runenv.TestGroupID,
+			"run_id":   re.TestRun,
+			"group_id": re.TestGroupID,
 		},
 	}
 
@@ -62,19 +48,8 @@ func (l *logger) init() {
 	cfg.EncoderConfig = enc
 
 	var err error
-	l.logger, err = cfg.Build()
+	re.logger, err = cfg.Build()
 	if err != nil {
 		panic(err)
 	}
-
-	l.slogger = l.logger.Sugar()
-}
-
-func (l *logger) SLogger() *zap.SugaredLogger {
-	return l.slogger
-}
-
-// Loggers returns the loggers populated from this runenv.
-func (l *logger) Loggers() (*zap.Logger, *zap.SugaredLogger) {
-	return l.logger, l.slogger
 }
