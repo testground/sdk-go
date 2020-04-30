@@ -1,5 +1,6 @@
 ---
 version: 2.1
+
 jobs:
   build:
     docker:
@@ -14,7 +15,7 @@ jobs:
           command: go mod tidy && git diff --exit-code
       - run:
           name: Test
-          command: make test ./...
+          command: go test -v -race ./...
       - run:
           name: Vet
           command: go vet ./...
