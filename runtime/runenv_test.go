@@ -271,3 +271,32 @@ func TestResultsDispatchedOnClose(t *testing.T) {
 	require.NotEmpty(tc.batchPoints)
 	tc.RUnlock()
 }
+
+func TestFrequencyChange(t *testing.T) {
+	InfluxBatching = false
+	tc := &testClient{}
+	TestInfluxDBClient = tc
+
+	re, cleanup := RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
+
+	// set an abnormally high frequency to verify that no points are produced.
+	re.D().SetFrequency(24 * time.Hour)
+	counter := re.D().NewCounter("foo")
+	counter.Inc(100)
+
+	require := require.New(t)
+
+	time.Sleep(1500 * time.Millisecond)
+
+	tc.RLock()
+	require.Empty(tc.batchPoints)
+	tc.RUnlock()
+
+	re.D().SetFrequency(100 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
+
+	tc.RLock()
+	require.Greater(len(tc.batchPoints), 5)
+	tc.RUnlock()
+}
