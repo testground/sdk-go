@@ -5,6 +5,7 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.14
+      - image: circleci/redis:latest
     steps:
       - checkout
       - restore_cache:

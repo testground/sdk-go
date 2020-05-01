@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis"
 	"go.uber.org/zap"
 )
 
@@ -48,9 +48,9 @@ func ensureRedis() (func() error, error) {
 		return func() error { return nil }, err
 	}
 
-	r, err := miniredis.Run()
-	if err != nil {
-		return func() error { return nil }, err
+	cmd := exec.Command("redis-server", "-")
+	if err := cmd.Start(); err != nil {
+		return func() error { return nil }, fmt.Errorf("failed to start redis: %w", err)
 	}
 
 	time.Sleep(1 * time.Second)
@@ -62,7 +62,9 @@ func ensureRedis() (func() error, error) {
 	defer client.Close()
 
 	return func() error {
-		r.Close()
+		if err := cmd.Process.Kill(); err != nil {
+			return fmt.Errorf("failed while stopping test-scoped redis: %s", err)
+		}
 		return nil
 	}, nil
 }
