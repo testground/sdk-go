@@ -103,7 +103,8 @@ func (m *MetricsApi) background() {
 		select {
 		case <-c:
 			for _, a := range m.callbacks {
-				a(m.reg)
+				_ = a
+				//				a(m.reg)
 			}
 			m.reg.Each(m.broadcast)
 
