@@ -46,10 +46,15 @@ func (mt *MetricType) UnmarshalJSON(b []byte) error {
 	return fmt.Errorf("invalid metric type")
 }
 
-var pools = func() (p [7]sync.Pool) {
+var pools = func() (p [7]*sync.Pool) {
 	for i := range p {
-		p[i].New = func() interface{} {
-			return &Metric{Type: MetricType(i), Measures: make(map[string]interface{}, 1)}
+		p[i] = &sync.Pool{
+			New: func() interface{} {
+				return &Metric{
+					Type:     MetricType(i),
+					Measures: make(map[string]interface{}, 1),
+				}
+			},
 		}
 	}
 	return p
@@ -76,36 +81,36 @@ func NewMetric(name string, i interface{}) *Metric {
 	switch v := i.(type) {
 	case Point:
 		t = MetricPoint
-		m = pools[t].Get().(*Metric)
+		m = (*pools[t]).Get().(*Metric)
 		m.Measures["value"] = float64(v)
 
 	case Counter:
 		t = MetricCounter
-		m = pools[t].Get().(*Metric)
+		m = (*pools[t]).Get().(*Metric)
 		s := v.Snapshot()
 		m.Measures["count"] = s.Count()
 
 	case EWMA:
 		t = MetricEWMA
-		m = pools[t].Get().(*Metric)
+		m = (*pools[t]).Get().(*Metric)
 		s := v.Snapshot()
 		m.Measures["rate"] = s.Rate()
 
 	case Gauge:
 		t = MetricGauge
-		m = pools[t].Get().(*Metric)
+		m = (*pools[t]).Get().(*Metric)
 		s := v.Snapshot()
 		m.Measures["value"] = s.Value()
 
 	case metrics.Gauge:
 		t = MetricGauge
-		m = pools[t].Get().(*Metric)
+		m = (*pools[t]).Get().(*Metric)
 		s := v.Snapshot()
 		m.Measures["value"] = float64(s.Value())
 
 	case Histogram:
 		t = MetricHistogram
-		m = pools[t].Get().(*Metric)
+		m = (*pools[t]).Get().(*Metric)
 		s := v.Snapshot()
 		p := s.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999, 0.9999})
 		m.Measures["count"] = float64(s.Count())
@@ -123,7 +128,7 @@ func NewMetric(name string, i interface{}) *Metric {
 
 	case Meter:
 		t = MetricMeter
-		m = pools[t].Get().(*Metric)
+		m = (*pools[t]).Get().(*Metric)
 		s := v.Snapshot()
 		m.Measures["count"] = float64(s.Count())
 		m.Measures["m1"] = s.Rate1()
@@ -133,7 +138,7 @@ func NewMetric(name string, i interface{}) *Metric {
 
 	case Timer:
 		t = MetricTimer
-		m = pools[t].Get().(*Metric)
+		m = (*pools[t]).Get().(*Metric)
 		s := v.Snapshot()
 		p := s.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999, 0.9999})
 		m.Measures["count"] = float64(s.Count())
