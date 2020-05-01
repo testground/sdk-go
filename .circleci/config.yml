@@ -1,0 +1,27 @@
+---
+version: 2.1
+
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.14
+      - image: circleci/redis:latest
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
+      - run:
+          name: Tidy
+          command: go mod tidy && git diff --exit-code
+      - run:
+          name: Test
+          #          command: go test -v -race ./...
+          command: go test -v ./...
+          #      - run:
+          #name: Vet
+          # command: go vet ./...
+      - save_cache:
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
