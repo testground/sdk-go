@@ -10,11 +10,12 @@ import (
 )
 
 func TestLengthBatching(t *testing.T) {
-	re, cleanup := RandomTestRunEnv(t)
+	runenv, cleanup := RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	tc := &testClient{}
-	b := newBatcher(re, tc, 16, 24*time.Hour)
+	b := newBatcher(runenv, tc, 16, 24*time.Hour)
 
 	writePoints(t, b, 0, 36)
 
@@ -37,11 +38,12 @@ func TestLengthBatching(t *testing.T) {
 }
 
 func TestIntervalBatching(t *testing.T) {
-	re, cleanup := RandomTestRunEnv(t)
+	runenv, cleanup := RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	tc := &testClient{}
-	b := newBatcher(re, tc, 1000, 500*time.Millisecond)
+	b := newBatcher(runenv, tc, 1000, 500*time.Millisecond)
 
 	writePoints(t, b, 0, 10)
 
@@ -62,8 +64,9 @@ func TestIntervalBatching(t *testing.T) {
 }
 
 func TestBatchFailure(t *testing.T) {
-	re, cleanup := RandomTestRunEnv(t)
+	runenv, cleanup := RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	test := func(b *batcher) func(t *testing.T) {
 		tc := &testClient{}
@@ -107,12 +110,12 @@ func TestBatchFailure(t *testing.T) {
 		}
 	}
 
-	t.Run("batches_by_length", test(newBatcher(re, nil, 10, 24*time.Hour,
+	t.Run("batches_by_length", test(newBatcher(runenv, nil, 10, 24*time.Hour,
 		retry.Attempts(3),
 		retry.Delay(100*time.Millisecond),
 	)))
 
-	t.Run("batches_by_time", test(newBatcher(re, nil, 10, 100*time.Millisecond,
+	t.Run("batches_by_time", test(newBatcher(runenv, nil, 10, 100*time.Millisecond,
 		retry.Attempts(3),
 		retry.Delay(100*time.Millisecond),
 	)))

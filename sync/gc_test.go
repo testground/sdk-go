@@ -19,6 +19,7 @@ func TestGC(t *testing.T) {
 
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {

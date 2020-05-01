@@ -26,6 +26,7 @@ func TestSubscribeAfterAllPublished(t *testing.T) {
 	)
 
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -73,6 +74,7 @@ func TestSubscribeFirstConcurrentWrites(t *testing.T) {
 	)
 
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -130,6 +132,7 @@ func TestSubscriptionConcurrentPublishersSubscribers(t *testing.T) {
 	)
 
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -178,8 +181,8 @@ func TestSubscriptionConcurrentPublishersSubscribers(t *testing.T) {
 
 func TestSubscriptionValidation(t *testing.T) {
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
-
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -221,6 +224,7 @@ func TestSequenceOnWrite(t *testing.T) {
 	)
 
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
