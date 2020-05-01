@@ -9,6 +9,19 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
+var pools [7]sync.Pool
+
+func init() {
+	for i := range pools {
+		pools[i].New = func() interface{} {
+			return &Metric{
+				Type:     MetricType(i),
+				Measures: make(map[string]interface{}, 1),
+			}
+		}
+	}
+}
+
 type MetricType int
 
 const (
@@ -45,15 +58,6 @@ func (mt *MetricType) UnmarshalJSON(b []byte) error {
 	}
 	return fmt.Errorf("invalid metric type")
 }
-
-var pools = func() (p [7]sync.Pool) {
-	for i := range p {
-		p[i].New = func() interface{} {
-			return &Metric{Type: MetricType(i), Measures: make(map[string]interface{}, 1)}
-		}
-	}
-	return p
-}()
 
 type Metric struct {
 	Timestamp int64                  `json:"ts"`
