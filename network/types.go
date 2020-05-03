@@ -1,11 +1,16 @@
 package network
 
 import (
+	"fmt"
 	"net"
 	"time"
 
 	"github.com/testground/sdk-go/sync"
 )
+
+// ErrNoTrafficShaping is returned from functions in this package when traffic
+// shaping is not available, such as when using the local:exec runner.
+var ErrNoTrafficShaping = fmt.Errorf("no traffic shaping available with this runner")
 
 type FilterAction int
 
