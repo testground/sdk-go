@@ -1,7 +1,6 @@
 package runtime
 
 import (
-	"context"
 	"sync"
 	"time"
 
@@ -111,9 +110,6 @@ func (m *MetricsApi) background() {
 		case f := <-m.freqChangeCh:
 			m.freq = f
 			resetTicker(f)
-
-		case <-context.Background().Done():
-			return
 
 		case <-m.doneCh:
 			return
