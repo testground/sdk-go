@@ -30,6 +30,7 @@ func TestGenericClientRunEnv(t *testing.T) {
 
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	bclient, err := NewBoundClient(ctx, runenv)
 	if err != nil {

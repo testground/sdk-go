@@ -16,6 +16,7 @@ func TestBarrier(t *testing.T) {
 
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -49,6 +50,7 @@ func TestBarrierBeyondTarget(t *testing.T) {
 
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -77,6 +79,7 @@ func TestBarrierZero(t *testing.T) {
 
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -104,6 +107,7 @@ func TestBarrierCancel(t *testing.T) {
 
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -132,6 +136,7 @@ func TestBarrierDeadline(t *testing.T) {
 
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -162,6 +167,7 @@ func TestSignalAndWait(t *testing.T) {
 
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	client, err := NewBoundClient(ctx, runenv)
 	if err != nil {
@@ -185,6 +191,7 @@ func TestSignalAndWait(t *testing.T) {
 func TestSignalAndWaitTimeout(t *testing.T) {
 	runenv, cleanup := runtime.RandomTestRunEnv(t)
 	t.Cleanup(cleanup)
+	defer runenv.Close()
 
 	client, err := NewBoundClient(context.Background(), runenv)
 	if err != nil {
