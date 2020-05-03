@@ -22,6 +22,11 @@ type Rate struct {
 	Interval time.Duration
 }
 
+var (
+	_ json.Marshaler   = Duration{}
+	_ json.Unmarshaler = &Duration{}
+)
+
 func (r Rate) MarshalJSON() ([]byte, error) {
 	return nil, nil
 }
