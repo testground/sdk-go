@@ -5,7 +5,7 @@
 [![Made by Protocol Labs](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://protocol.ai)
 ![Go version](https://img.shields.io/badge/go-%3E%3D1.14.0-blue.svg?style=flat-square)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://pkg.go.dev/github.com/testground/sdk-go)
-[![Travis CI](https://travis-ci.com/testground/sdk-go.svg?branch=master)](https://travis-ci.com/testground/sdk-go)
+[![CircleCI](https://circleci.com/gh/testground/sdk-go.svg?style=svg)](https://circleci.com/gh/testground/sdk-go)
 
 This repository contains the Golang SDK for developing [Testground](https://github.com/testground/testground) test plans.
 
