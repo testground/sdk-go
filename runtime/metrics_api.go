@@ -54,7 +54,7 @@ type metricsApiOpts struct {
 func newMetricsApi(re *RunEnv, opts metricsApiOpts) *MetricsApi {
 	m := &MetricsApi{
 		re:           re,
-		reg:          NewRegistry(),
+		reg:          metrics.NewRegistry(),
 		sinks:        opts.sinks,
 		freq:         opts.freq,
 		callbacks:    opts.callbacks,
@@ -172,8 +172,8 @@ func (m *MetricsApi) Timer(name string) Timer {
 	return m.reg.GetOrRegister(name, metrics.NewTimer()).(metrics.Timer)
 }
 
-func (m *MetricsApi) ResettingTimer(name string) ResettingTimer {
-	return m.reg.GetOrRegister(name, NewResettingTimer()).(ResettingTimer)
+func (m *MetricsApi) ResettingHistogram(name string) Histogram {
+	return m.reg.GetOrRegister(name, NewResettingHistogram()).(Histogram)
 }
 
 func (m *MetricsApi) NewExpDecaySample(reservoirSize int, alpha float64) Sample {

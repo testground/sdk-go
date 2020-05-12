@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func TestResettingTimer(t *testing.T) {
+func TestResettingHistogram(t *testing.T) {
 	tests := []struct {
 		values   []int64
 		start    int
@@ -61,14 +61,14 @@ func TestResettingTimer(t *testing.T) {
 		},
 	}
 	for ind, tt := range tests {
-		timer := NewResettingTimer()
+		timer := NewResettingHistogram()
 
 		for i := tt.start; i < tt.end; i++ {
 			tt.values = append(tt.values, int64(i))
 		}
 
 		for _, v := range tt.values {
-			timer.Update(time.Duration(v))
+			timer.Update(int64(time.Duration(v)))
 		}
 
 		snap := timer.Snapshot()
@@ -105,7 +105,7 @@ func TestResettingTimer(t *testing.T) {
 	}
 }
 
-func TestResettingTimerWithFivePercentiles(t *testing.T) {
+func TestResettingHistogramWithFivePercentiles(t *testing.T) {
 	tests := []struct {
 		values   []int64
 		start    int
@@ -163,14 +163,14 @@ func TestResettingTimerWithFivePercentiles(t *testing.T) {
 		},
 	}
 	for ind, tt := range tests {
-		timer := NewResettingTimer()
+		timer := NewResettingHistogram()
 
 		for i := tt.start; i < tt.end; i++ {
 			tt.values = append(tt.values, int64(i))
 		}
 
 		for _, v := range tt.values {
-			timer.Update(time.Duration(v))
+			timer.Update(int64(time.Duration(v)))
 		}
 
 		snap := timer.Snapshot()
