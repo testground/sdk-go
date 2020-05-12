@@ -20,6 +20,10 @@ const (
 	Drop
 )
 
+const (
+	DefaultDataNetwork = "default"
+)
+
 // LinkShape defines how traffic should be shaped.
 type LinkShape struct {
 	// Latency is the egress latency
