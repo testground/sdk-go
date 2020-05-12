@@ -172,6 +172,10 @@ func (m *MetricsApi) Timer(name string) Timer {
 	return m.reg.GetOrRegister(name, metrics.NewTimer()).(metrics.Timer)
 }
 
+func (m *MetricsApi) ResettingTimer(name string) ResettingTimer {
+	return m.reg.GetOrRegister(name, NewResettingTimer()).(ResettingTimer)
+}
+
 func (m *MetricsApi) NewExpDecaySample(reservoirSize int, alpha float64) Sample {
 	return metrics.NewExpDecaySample(reservoirSize, alpha)
 }
