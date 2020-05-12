@@ -3,11 +3,14 @@ package runtime
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
+
+	"github.com/rcrowley/go-metrics"
 )
 
-var pools [7]sync.Pool
+var pools [8]sync.Pool
 
 func init() {
 	for i := range pools {
@@ -100,6 +103,12 @@ func NewMetric(name string, i interface{}) *Metric {
 		s := v.Snapshot()
 		m.Measures["value"] = s.Value()
 
+	case metrics.Gauge:
+		t = MetricGauge
+		m = pools[t].Get().(*Metric)
+		s := v.Snapshot()
+		m.Measures["value"] = float64(s.Value())
+
 	case Histogram:
 		t = MetricHistogram
 		m = pools[t].Get().(*Metric)
@@ -162,7 +171,7 @@ func NewMetric(name string, i interface{}) *Metric {
 		m.Measures["meanrate"] = s.RateMean()
 
 	default:
-		panic("unexpected metric type")
+		panic(fmt.Sprintf("unexpected metric type: %v", reflect.TypeOf(v)))
 
 	}
 

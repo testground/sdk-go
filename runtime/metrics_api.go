@@ -54,7 +54,7 @@ type metricsApiOpts struct {
 func newMetricsApi(re *RunEnv, opts metricsApiOpts) *MetricsApi {
 	m := &MetricsApi{
 		re:           re,
-		reg:          metrics.NewRegistry(),
+		reg:          NewRegistry(),
 		sinks:        opts.sinks,
 		freq:         opts.freq,
 		callbacks:    opts.callbacks,
