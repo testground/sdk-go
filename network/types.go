@@ -20,6 +20,12 @@ const (
 	Drop
 )
 
+const (
+	// The `data` network that Testground currently configures. In the future we might want to have
+	// multiple `data` networks, and shape the network traffic on them differently.
+	DefaultDataNetwork = "default"
+)
+
 // LinkShape defines how traffic should be shaped.
 type LinkShape struct {
 	// Latency is the egress latency
