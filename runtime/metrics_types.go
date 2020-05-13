@@ -102,7 +102,7 @@ func NewMetric(name string, i interface{}) *Metric {
 		s := v.Snapshot()
 		m.Measures["value"] = s.Value()
 
-	case metrics.Gauge: // int64 gauge, used by go runtimem metrics
+	case metrics.Gauge: // int64 gauge, used by go runtime metrics
 		t = MetricGauge
 		m = pools[t].Get().(*Metric)
 		s := v.Snapshot()
