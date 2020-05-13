@@ -160,19 +160,19 @@ func (m *Metrics) recordEvent(evt *Event) {
 		tags[k] = v
 	}
 
-	tags["type"] = string(evt.Type)
-
 	if evt.Outcome != "" {
 		tags["outcome"] = string(evt.Outcome)
 	}
 
-	f := map[string]interface{}{
+	fields := map[string]interface{}{
 		"error": evt.Error,
 	}
 
-	p, err := client.NewPoint("events", tags, f)
+	measurement := fmt.Sprintf("events.%s", string(evt.Type))
+	p, err := client.NewPoint(measurement, tags, fields)
 	if err != nil {
 		m.re.RecordMessage("failed to create InfluxDB point: %s", err)
 	}
+
 	m.batcher.WritePoint(p)
 }
