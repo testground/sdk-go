@@ -88,31 +88,31 @@ type StandardResettingHistogram struct {
 }
 
 func (t *StandardResettingHistogram) Count() int64 {
-	panic("Count called on a NilResettingHistogram")
+	panic("Count called on a StandardResettingHistogram")
 }
 
 func (t *StandardResettingHistogram) Max() int64 {
-	panic("Max called on a NilResettingHistogram")
+	panic("Max called on a StandardResettingHistogram")
 }
 
 func (t *StandardResettingHistogram) Min() int64 {
-	panic("Min called on a NilResettingHistogram")
+	panic("Min called on a StandardResettingHistogram")
 }
 
 func (t *StandardResettingHistogram) StdDev() float64 {
-	panic("StdDev called on a NilResettingHistogram")
+	panic("StdDev called on a StandardResettingHistogram")
 }
 
 func (t *StandardResettingHistogram) Variance() float64 {
-	panic("Variance called on a NilResettingHistogram")
+	panic("Variance called on a StandardResettingHistogram")
 }
 
 func (t *StandardResettingHistogram) Sum() int64 {
-	panic("Sum called on a NilResettingHistogram")
+	panic("Sum called on a StandardResettingHistogram")
 }
 
 func (t *StandardResettingHistogram) Sample() Sample {
-	panic("Sample called on a NilResettingHistogram")
+	panic("Sample called on a StandardResettingHistogram")
 }
 
 func (t *StandardResettingHistogram) Percentiles([]float64) []float64 {
