@@ -197,6 +197,7 @@ func (t *ResettingHistogramSnapshot) Min() int64 {
 }
 
 func (t *ResettingHistogramSnapshot) Variance() float64 {
+	// For now we don't care about the Variance, because we use the Resetting Histogram to measure latencies
 	return 0
 }
 
@@ -207,7 +208,10 @@ func (t *ResettingHistogramSnapshot) Max() int64 {
 	return 0
 }
 
-func (t *ResettingHistogramSnapshot) StdDev() float64 { return 0 }
+func (t *ResettingHistogramSnapshot) StdDev() float64 {
+	// For now we don't care about the StdDev, because we use the Resetting Histogram to measure latencies
+	return 0
+}
 
 func (t *ResettingHistogramSnapshot) Sum() int64 {
 	var sum int64
