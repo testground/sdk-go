@@ -145,7 +145,7 @@ func (m *MetricsApi) RecordPoint(name string, value float64) {
 }
 
 func (m *MetricsApi) Counter(name string) Counter {
-	return m.reg.GetOrRegister(name, metrics.NewCounter()).(metrics.Counter)
+	return m.reg.GetOrRegister(name, NewResettingCounter()).(metrics.Counter)
 }
 
 func (m *MetricsApi) EWMA(name string, alpha float64) EWMA {
