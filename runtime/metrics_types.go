@@ -117,8 +117,6 @@ func NewMetric(name string, i interface{}) *Metric {
 		m.Measures["max"] = float64(s.Max())
 		m.Measures["mean"] = s.Mean()
 		m.Measures["min"] = float64(s.Min())
-		m.Measures["stddev"] = s.StdDev()
-		m.Measures["variance"] = s.Variance()
 		m.Measures["p50"] = p[0]
 		m.Measures["p75"] = p[1]
 		m.Measures["p95"] = p[2]
