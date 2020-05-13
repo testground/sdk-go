@@ -10,9 +10,9 @@ func TestResettingHistogram(t *testing.T) {
 		values   []int64
 		start    int
 		end      int
-		wantP50  int64
-		wantP95  int64
-		wantP99  int64
+		wantP50  float64
+		wantP95  float64
+		wantP99  float64
 		wantMean float64
 		wantMin  int64
 		wantMax  int64
@@ -75,7 +75,7 @@ func TestResettingHistogram(t *testing.T) {
 
 		ps := snap.Percentiles([]float64{50, 95, 99})
 
-		val := snap.Values()
+		val := tt.values
 
 		if len(val) > 0 {
 			if tt.wantMin != val[0] {
@@ -92,15 +92,15 @@ func TestResettingHistogram(t *testing.T) {
 		}
 
 		if tt.wantP50 != ps[0] {
-			t.Fatalf("%d: p50: got %d, want %d", ind, ps[0], tt.wantP50)
+			t.Fatalf("%d: p50: got %v, want %v", ind, ps[0], tt.wantP50)
 		}
 
 		if tt.wantP95 != ps[1] {
-			t.Fatalf("%d: p95: got %d, want %d", ind, ps[1], tt.wantP95)
+			t.Fatalf("%d: p95: got %v, want %v", ind, ps[1], tt.wantP95)
 		}
 
 		if tt.wantP99 != ps[2] {
-			t.Fatalf("%d: p99: got %d, want %d", ind, ps[2], tt.wantP99)
+			t.Fatalf("%d: p99: got %v, want %v", ind, ps[2], tt.wantP99)
 		}
 	}
 }
@@ -110,11 +110,11 @@ func TestResettingHistogramWithFivePercentiles(t *testing.T) {
 		values   []int64
 		start    int
 		end      int
-		wantP05  int64
-		wantP20  int64
-		wantP50  int64
-		wantP95  int64
-		wantP99  int64
+		wantP05  float64
+		wantP20  float64
+		wantP50  float64
+		wantP95  float64
+		wantP99  float64
 		wantMean float64
 		wantMin  int64
 		wantMax  int64
@@ -177,7 +177,7 @@ func TestResettingHistogramWithFivePercentiles(t *testing.T) {
 
 		ps := snap.Percentiles([]float64{5, 20, 50, 95, 99})
 
-		val := snap.Values()
+		val := tt.values
 
 		if len(val) > 0 {
 			if tt.wantMin != val[0] {
@@ -194,23 +194,23 @@ func TestResettingHistogramWithFivePercentiles(t *testing.T) {
 		}
 
 		if tt.wantP05 != ps[0] {
-			t.Fatalf("%d: p05: got %d, want %d", ind, ps[0], tt.wantP05)
+			t.Fatalf("%d: p05: got %v, want %v", ind, ps[0], tt.wantP05)
 		}
 
 		if tt.wantP20 != ps[1] {
-			t.Fatalf("%d: p20: got %d, want %d", ind, ps[1], tt.wantP20)
+			t.Fatalf("%d: p20: got %v, want %v", ind, ps[1], tt.wantP20)
 		}
 
 		if tt.wantP50 != ps[2] {
-			t.Fatalf("%d: p50: got %d, want %d", ind, ps[2], tt.wantP50)
+			t.Fatalf("%d: p50: got %v, want %v", ind, ps[2], tt.wantP50)
 		}
 
 		if tt.wantP95 != ps[3] {
-			t.Fatalf("%d: p95: got %d, want %d", ind, ps[3], tt.wantP95)
+			t.Fatalf("%d: p95: got %v, want %v", ind, ps[3], tt.wantP95)
 		}
 
 		if tt.wantP99 != ps[4] {
-			t.Fatalf("%d: p99: got %d, want %d", ind, ps[4], tt.wantP99)
+			t.Fatalf("%d: p99: got %v, want %v", ind, ps[4], tt.wantP99)
 		}
 	}
 }
