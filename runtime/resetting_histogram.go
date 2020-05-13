@@ -72,9 +72,6 @@ func (NilResettingHistogram) Mean() float64 {
 	panic("Mean called on a NilResettingHistogram")
 }
 
-// UpdateSince is a no-op.
-func (NilResettingHistogram) UpdateSince(time.Time) {}
-
 // StandardResettingHistogram is used for storing aggregated values for timers, which are reset on every flush interval.
 type StandardResettingHistogram struct {
 	values []int64
@@ -145,13 +142,6 @@ func (t *StandardResettingHistogram) Update(d int64) {
 	t.values = append(t.values, d)
 }
 
-// Record the duration of an event that started at a time and ends now.
-func (t *StandardResettingHistogram) UpdateSince(ts time.Time) {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-	t.values = append(t.values, int64(time.Since(ts)))
-}
-
 // ResettingHistogramSnapshot is a point-in-time copy of another ResettingHistogram.
 type ResettingHistogramSnapshot struct {
 	values              []int64
@@ -173,11 +163,6 @@ func (t *ResettingHistogramSnapshot) Count() int64 { return int64(len(t.values))
 // Update panics.
 func (*ResettingHistogramSnapshot) Update(int64) {
 	panic("Update called on a ResettingHistogramSnapshot")
-}
-
-// UpdateSince panics.
-func (*ResettingHistogramSnapshot) UpdateSince(time.Time) {
-	panic("UpdateSince called on a ResettingHistogramSnapshot")
 }
 
 // Values returns all values from snapshot.
