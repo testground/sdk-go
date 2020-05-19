@@ -136,6 +136,7 @@ func (t *StandardResettingHistogram) Values() []int64 {
 func (t *StandardResettingHistogram) Snapshot() Histogram {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
+
 	currentValues := t.values
 	t.values = make([]int64, 0, InitialResettingHistogramSliceCap)
 
@@ -161,10 +162,11 @@ func (t *StandardResettingHistogram) Update(d int64) {
 
 // ResettingHistogramSnapshot is a point-in-time copy of another ResettingHistogram.
 type ResettingHistogramSnapshot struct {
-	values              []int64
-	mean                float64
-	thresholdBoundaries []float64
-	calculated          bool
+	sync.Mutex
+
+	values     []int64
+	mean       float64
+	calculated bool
 }
 
 // Snapshot returns the snapshot.
@@ -182,14 +184,25 @@ func (t *ResettingHistogramSnapshot) Sample() Sample {
 	panic("Sample called on a ResettingHistogramSnapshot")
 }
 
-func (t *ResettingHistogramSnapshot) Count() int64 { return int64(len(t.values)) }
+func (t *ResettingHistogramSnapshot) Count() int64 {
+	t.Lock()
+	defer t.Unlock()
+
+	return int64(len(t.values))
+}
 
 // Values returns all values from snapshot.
 func (t *ResettingHistogramSnapshot) Values() []int64 {
+	t.Lock()
+	defer t.Unlock()
+
 	return t.values
 }
 
 func (t *ResettingHistogramSnapshot) Min() int64 {
+	t.Lock()
+	defer t.Unlock()
+
 	if len(t.values) > 0 {
 		return t.values[0]
 	}
@@ -197,9 +210,13 @@ func (t *ResettingHistogramSnapshot) Min() int64 {
 }
 
 func (t *ResettingHistogramSnapshot) Variance() float64 {
-	if 0 == len(t.values) {
+	t.Lock()
+	defer t.Unlock()
+
+	if len(t.values) == 0 {
 		return 0.0
 	}
+
 	m := t.Mean()
 	var sum float64
 	for _, v := range t.values {
@@ -210,6 +227,9 @@ func (t *ResettingHistogramSnapshot) Variance() float64 {
 }
 
 func (t *ResettingHistogramSnapshot) Max() int64 {
+	t.Lock()
+	defer t.Unlock()
+
 	if len(t.values) > 0 {
 		return t.values[len(t.values)-1]
 	}
@@ -221,6 +241,9 @@ func (t *ResettingHistogramSnapshot) StdDev() float64 {
 }
 
 func (t *ResettingHistogramSnapshot) Sum() int64 {
+	t.Lock()
+	defer t.Unlock()
+
 	var sum int64
 	for _, v := range t.values {
 		sum += v
@@ -230,31 +253,40 @@ func (t *ResettingHistogramSnapshot) Sum() int64 {
 
 // Percentile returns the boundaries for the input percentiles.
 func (t *ResettingHistogramSnapshot) Percentile(percentile float64) float64 {
-	t.calc([]float64{percentile})
+	t.Lock()
+	defer t.Unlock()
 
-	return t.thresholdBoundaries[0]
+	tb := t.calc([]float64{percentile})
+
+	return tb[0]
 }
 
 // Percentiles returns the boundaries for the input percentiles.
 func (t *ResettingHistogramSnapshot) Percentiles(percentiles []float64) []float64 {
-	t.calc(percentiles)
+	t.Lock()
+	defer t.Unlock()
 
-	return t.thresholdBoundaries
+	tb := t.calc(percentiles)
+
+	return tb
 }
 
 // Mean returns the mean of the snapshotted values
 func (t *ResettingHistogramSnapshot) Mean() float64 {
+	t.Lock()
+	defer t.Unlock()
+
 	if !t.calculated {
-		t.calc([]float64{})
+		_ = t.calc([]float64{})
 	}
 
 	return t.mean
 }
 
-func (t *ResettingHistogramSnapshot) calc(percentiles []float64) {
+func (t *ResettingHistogramSnapshot) calc(percentiles []float64) (thresholdBoundaries []float64) {
 	count := len(t.values)
 	if count == 0 {
-		t.thresholdBoundaries = make([]float64, len(percentiles))
+		thresholdBoundaries = make([]float64, len(percentiles))
 		t.mean = 0
 		t.calculated = true
 		return
@@ -269,7 +301,7 @@ func (t *ResettingHistogramSnapshot) calc(percentiles []float64) {
 		cumulativeValues[i] = t.values[i] + cumulativeValues[i-1]
 	}
 
-	t.thresholdBoundaries = make([]float64, len(percentiles))
+	thresholdBoundaries = make([]float64, len(percentiles))
 
 	thresholdBoundary := max
 
@@ -290,10 +322,11 @@ func (t *ResettingHistogramSnapshot) calc(percentiles []float64) {
 			thresholdBoundary = t.values[indexOfPerc]
 		}
 
-		t.thresholdBoundaries[i] = float64(thresholdBoundary)
+		thresholdBoundaries[i] = float64(thresholdBoundary)
 	}
 
 	sum := cumulativeValues[count-1]
 	t.mean = float64(sum) / float64(count)
 	t.calculated = true
+	return
 }
