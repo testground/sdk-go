@@ -47,7 +47,7 @@ func newMetrics(re *RunEnv) *Metrics {
 	}
 
 	m.diagnostics = newMetricsApi(re, metricsApiOpts{
-		freq:        10 * time.Second,
+		freq:        5 * time.Second,
 		preregister: metrics.RegisterRuntimeMemStats,
 		callbacks:   []func(metrics.Registry){metrics.CaptureRuntimeMemStatsOnce},
 		sinks:       dsinks,
