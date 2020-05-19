@@ -145,7 +145,7 @@ func (m *MetricsApi) RecordPoint(name string, value float64) {
 }
 
 func (m *MetricsApi) Counter(name string) Counter {
-	return m.reg.GetOrRegister(name, NewResettingCounter()).(metrics.Counter)
+	return m.reg.GetOrRegister(name, newResettingCounter()).(metrics.Counter)
 }
 
 func (m *MetricsApi) EWMA(name string, alpha float64) EWMA {
@@ -173,7 +173,7 @@ func (m *MetricsApi) Timer(name string) Timer {
 }
 
 func (m *MetricsApi) ResettingHistogram(name string) Histogram {
-	return m.reg.GetOrRegister(name, NewResettingHistogram()).(Histogram)
+	return m.reg.GetOrRegister(name, newResettingHistogram()).(Histogram)
 }
 
 func (m *MetricsApi) NewExpDecaySample(reservoirSize int, alpha float64) Sample {

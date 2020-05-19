@@ -61,7 +61,7 @@ func TestResettingHistogram(t *testing.T) {
 		},
 	}
 	for ind, tt := range tests {
-		timer := NewResettingHistogram()
+		timer := newResettingHistogram()
 
 		for i := tt.start; i < tt.end; i++ {
 			tt.values = append(tt.values, int64(i))
@@ -163,7 +163,7 @@ func TestResettingHistogramWithFivePercentiles(t *testing.T) {
 		},
 	}
 	for ind, tt := range tests {
-		timer := NewResettingHistogram()
+		timer := newResettingHistogram()
 
 		for i := tt.start; i < tt.end; i++ {
 			tt.values = append(tt.values, int64(i))

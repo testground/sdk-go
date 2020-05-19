@@ -11,8 +11,8 @@ import (
 // Initial slice capacity for the values stored in a ResettingHistogram
 const InitialResettingHistogramSliceCap = 10
 
-// NewResettingHistogram constructs a new StandardResettingHistogram
-func NewResettingHistogram() Histogram {
+// newResettingHistogram constructs a new StandardResettingHistogram
+func newResettingHistogram() Histogram {
 	if metrics.UseNilMetrics {
 		return NilResettingHistogram{}
 	}
@@ -42,43 +42,43 @@ func (NilResettingHistogram) Update(int64) {}
 func (NilResettingHistogram) Clear() {}
 
 func (NilResettingHistogram) Count() int64 {
-	panic("Count called on a NilResettingHistogram")
+	return 0
 }
 
 func (NilResettingHistogram) Variance() float64 {
-	panic("Count called on a NilResettingHistogram")
+	return 0.0
 }
 
 func (NilResettingHistogram) Min() int64 {
-	panic("Min called on a NilResettingHistogram")
+	return 0
 }
 
 func (NilResettingHistogram) Max() int64 {
-	panic("Max called on a NilResettingHistogram")
+	return 0
 }
 
 func (NilResettingHistogram) Sum() int64 {
-	panic("Sum called on a NilResettingHistogram")
+	return 0
 }
 
 func (NilResettingHistogram) StdDev() float64 {
-	panic("StdDev called on a NilResettingHistogram")
+	return 0.0
 }
 
 func (NilResettingHistogram) Sample() Sample {
-	panic("Sample called on a NilResettingHistogram")
+	return metrics.NilSample{}
 }
 
 func (NilResettingHistogram) Percentiles([]float64) []float64 {
-	panic("Percentiles called on a NilResettingHistogram")
+	return nil
 }
 
 func (NilResettingHistogram) Percentile(float64) float64 {
-	panic("Percentiles called on a NilResettingHistogram")
+	return 0.0
 }
 
 func (NilResettingHistogram) Mean() float64 {
-	panic("Mean called on a NilResettingHistogram")
+	return 0.0
 }
 
 // StandardResettingHistogram is used for storing aggregated values for timers, which are reset on every flush interval.
@@ -253,46 +253,47 @@ func (t *ResettingHistogramSnapshot) Mean() float64 {
 
 func (t *ResettingHistogramSnapshot) calc(percentiles []float64) {
 	count := len(t.values)
-	if count > 0 {
-		min := t.values[0]
-		max := t.values[count-1]
-
-		cumulativeValues := make([]int64, count)
-		cumulativeValues[0] = min
-		for i := 1; i < count; i++ {
-			cumulativeValues[i] = t.values[i] + cumulativeValues[i-1]
-		}
-
-		t.thresholdBoundaries = make([]float64, len(percentiles))
-
-		thresholdBoundary := max
-
-		for i, pct := range percentiles {
-			if count > 1 {
-				var abs float64
-				if pct >= 0 {
-					abs = pct
-				} else {
-					abs = 100 + pct
-				}
-				// poor man's math.Round(x):
-				// math.Floor(x + 0.5)
-				indexOfPerc := int(math.Floor(((abs / 100.0) * float64(count)) + 0.5))
-				if pct >= 0 && indexOfPerc > 0 {
-					indexOfPerc -= 1 // index offset=0
-				}
-				thresholdBoundary = t.values[indexOfPerc]
-			}
-
-			t.thresholdBoundaries[i] = float64(thresholdBoundary)
-		}
-
-		sum := cumulativeValues[count-1]
-		t.mean = float64(sum) / float64(count)
-	} else {
+	if count == 0 {
 		t.thresholdBoundaries = make([]float64, len(percentiles))
 		t.mean = 0
+		t.calculated = true
+		return
 	}
 
+	min := t.values[0]
+	max := t.values[count-1]
+
+	cumulativeValues := make([]int64, count)
+	cumulativeValues[0] = min
+	for i := 1; i < count; i++ {
+		cumulativeValues[i] = t.values[i] + cumulativeValues[i-1]
+	}
+
+	t.thresholdBoundaries = make([]float64, len(percentiles))
+
+	thresholdBoundary := max
+
+	for i, pct := range percentiles {
+		if count > 1 {
+			var abs float64
+			if pct >= 0 {
+				abs = pct
+			} else {
+				abs = 100 + pct
+			}
+			// poor man's math.Round(x):
+			// math.Floor(x + 0.5)
+			indexOfPerc := int(math.Floor(((abs / 100.0) * float64(count)) + 0.5))
+			if pct >= 0 && indexOfPerc > 0 {
+				indexOfPerc -= 1 // index offset=0
+			}
+			thresholdBoundary = t.values[indexOfPerc]
+		}
+
+		t.thresholdBoundaries[i] = float64(thresholdBoundary)
+	}
+
+	sum := cumulativeValues[count-1]
+	t.mean = float64(sum) / float64(count)
 	t.calculated = true
 }

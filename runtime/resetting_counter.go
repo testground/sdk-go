@@ -6,31 +6,11 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
-// GetOrRegisterCounter returns an existing Counter or constructs and registers
-// a new StandardCounter.
-func GetOrRegisterResettingCounter(name string, r metrics.Registry) metrics.Counter {
-	if nil == r {
-		r = metrics.DefaultRegistry
-	}
-	return r.GetOrRegister(name, NewResettingCounter).(Counter)
-}
-
-// NewResettingCounter constructs a new StandardCounter.
-func NewResettingCounter() Counter {
+func newResettingCounter() Counter {
 	if metrics.UseNilMetrics {
 		return metrics.NilCounter{}
 	}
 	return &StandardResettingCounter{0}
-}
-
-// NewRegisteredResettingCounter constructs and registers a new StandardCounter.
-func NewRegisteredResettingCounter(name string, r metrics.Registry) Counter {
-	c := NewResettingCounter()
-	if nil == r {
-		r = metrics.DefaultRegistry
-	}
-	r.Register(name, c)
-	return c
 }
 
 // StandardResettingCounter is the standard implementation of a Counter and uses the
