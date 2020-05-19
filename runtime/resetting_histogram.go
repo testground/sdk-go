@@ -88,43 +88,43 @@ type standardResettingHistogram struct {
 }
 
 func (t *standardResettingHistogram) Count() int64 {
-	panic("Count called on a StandardResettingHistogram")
+	panic("Count called on a standardResettingHistogram")
 }
 
 func (t *standardResettingHistogram) Max() int64 {
-	panic("Max called on a StandardResettingHistogram")
+	panic("Max called on a standardResettingHistogram")
 }
 
 func (t *standardResettingHistogram) Min() int64 {
-	panic("Min called on a StandardResettingHistogram")
+	panic("Min called on a standardResettingHistogram")
 }
 
 func (t *standardResettingHistogram) StdDev() float64 {
-	panic("StdDev called on a StandardResettingHistogram")
+	panic("StdDev called on a standardResettingHistogram")
 }
 
 func (t *standardResettingHistogram) Variance() float64 {
-	panic("Variance called on a StandardResettingHistogram")
+	panic("Variance called on a standardResettingHistogram")
 }
 
 func (t *standardResettingHistogram) Sum() int64 {
-	panic("Sum called on a StandardResettingHistogram")
+	panic("Sum called on a standardResettingHistogram")
 }
 
 func (t *standardResettingHistogram) Sample() Sample {
-	panic("Sample called on a StandardResettingHistogram")
+	panic("Sample called on a standardResettingHistogram")
 }
 
 func (t *standardResettingHistogram) Percentiles([]float64) []float64 {
-	panic("Percentiles called on a StandardResettingHistogram")
+	panic("Percentiles called on a standardResettingHistogram")
 }
 
 func (t *standardResettingHistogram) Percentile(float64) float64 {
-	panic("Percentile called on a StandardResettingHistogram")
+	panic("Percentile called on a standardResettingHistogram")
 }
 
 func (t *standardResettingHistogram) Mean() float64 {
-	panic("Mean called on a StandardResettingHistogram")
+	panic("Mean called on a standardResettingHistogram")
 }
 
 // Values returns a slice with all measurements.
@@ -173,15 +173,15 @@ type resettingHistogramSnapshot struct {
 func (t *resettingHistogramSnapshot) Snapshot() Histogram { return t }
 
 func (*resettingHistogramSnapshot) Update(int64) {
-	panic("Update called on a ResettingHistogramSnapshot")
+	panic("Update called on a resettingHistogramSnapshot")
 }
 
 func (t *resettingHistogramSnapshot) Clear() {
-	panic("Clear called on a ResettingHistogramSnapshot")
+	panic("Clear called on a resettingHistogramSnapshot")
 }
 
 func (t *resettingHistogramSnapshot) Sample() Sample {
-	panic("Sample called on a ResettingHistogramSnapshot")
+	panic("Sample called on a resettingHistogramSnapshot")
 }
 
 func (t *resettingHistogramSnapshot) Count() int64 {
