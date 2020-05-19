@@ -14,126 +14,126 @@ const InitialResettingHistogramSliceCap = 10
 // newResettingHistogram constructs a new StandardResettingHistogram
 func newResettingHistogram() Histogram {
 	if metrics.UseNilMetrics {
-		return NilResettingHistogram{}
+		return nilResettingHistogram{}
 	}
-	return &StandardResettingHistogram{
+	return &standardResettingHistogram{
 		values: make([]int64, 0, InitialResettingHistogramSliceCap),
 	}
 }
 
-// NilResettingHistogram is a no-op ResettingHistogram.
-type NilResettingHistogram struct {
+// nilResettingHistogram is a no-op ResettingHistogram.
+type nilResettingHistogram struct {
 }
 
 // Values is a no-op.
-func (NilResettingHistogram) Values() []int64 { return nil }
+func (nilResettingHistogram) Values() []int64 { return nil }
 
 // Snapshot is a no-op.
-func (NilResettingHistogram) Snapshot() Histogram {
-	return &ResettingHistogramSnapshot{
+func (nilResettingHistogram) Snapshot() Histogram {
+	return &resettingHistogramSnapshot{
 		values: []int64{},
 	}
 }
 
 // Update is a no-op.
-func (NilResettingHistogram) Update(int64) {}
+func (nilResettingHistogram) Update(int64) {}
 
 // Clear is a no-op.
-func (NilResettingHistogram) Clear() {}
+func (nilResettingHistogram) Clear() {}
 
-func (NilResettingHistogram) Count() int64 {
+func (nilResettingHistogram) Count() int64 {
 	return 0
 }
 
-func (NilResettingHistogram) Variance() float64 {
+func (nilResettingHistogram) Variance() float64 {
 	return 0.0
 }
 
-func (NilResettingHistogram) Min() int64 {
+func (nilResettingHistogram) Min() int64 {
 	return 0
 }
 
-func (NilResettingHistogram) Max() int64 {
+func (nilResettingHistogram) Max() int64 {
 	return 0
 }
 
-func (NilResettingHistogram) Sum() int64 {
+func (nilResettingHistogram) Sum() int64 {
 	return 0
 }
 
-func (NilResettingHistogram) StdDev() float64 {
+func (nilResettingHistogram) StdDev() float64 {
 	return 0.0
 }
 
-func (NilResettingHistogram) Sample() Sample {
+func (nilResettingHistogram) Sample() Sample {
 	return metrics.NilSample{}
 }
 
-func (NilResettingHistogram) Percentiles([]float64) []float64 {
+func (nilResettingHistogram) Percentiles([]float64) []float64 {
 	return nil
 }
 
-func (NilResettingHistogram) Percentile(float64) float64 {
+func (nilResettingHistogram) Percentile(float64) float64 {
 	return 0.0
 }
 
-func (NilResettingHistogram) Mean() float64 {
+func (nilResettingHistogram) Mean() float64 {
 	return 0.0
 }
 
-// StandardResettingHistogram is used for storing aggregated values for timers, which are reset on every flush interval.
-type StandardResettingHistogram struct {
+// standardResettingHistogram is used for storing aggregated values for timers, which are reset on every flush interval.
+type standardResettingHistogram struct {
 	values []int64
 	mutex  sync.Mutex
 }
 
-func (t *StandardResettingHistogram) Count() int64 {
+func (t *standardResettingHistogram) Count() int64 {
 	panic("Count called on a StandardResettingHistogram")
 }
 
-func (t *StandardResettingHistogram) Max() int64 {
+func (t *standardResettingHistogram) Max() int64 {
 	panic("Max called on a StandardResettingHistogram")
 }
 
-func (t *StandardResettingHistogram) Min() int64 {
+func (t *standardResettingHistogram) Min() int64 {
 	panic("Min called on a StandardResettingHistogram")
 }
 
-func (t *StandardResettingHistogram) StdDev() float64 {
+func (t *standardResettingHistogram) StdDev() float64 {
 	panic("StdDev called on a StandardResettingHistogram")
 }
 
-func (t *StandardResettingHistogram) Variance() float64 {
+func (t *standardResettingHistogram) Variance() float64 {
 	panic("Variance called on a StandardResettingHistogram")
 }
 
-func (t *StandardResettingHistogram) Sum() int64 {
+func (t *standardResettingHistogram) Sum() int64 {
 	panic("Sum called on a StandardResettingHistogram")
 }
 
-func (t *StandardResettingHistogram) Sample() Sample {
+func (t *standardResettingHistogram) Sample() Sample {
 	panic("Sample called on a StandardResettingHistogram")
 }
 
-func (t *StandardResettingHistogram) Percentiles([]float64) []float64 {
+func (t *standardResettingHistogram) Percentiles([]float64) []float64 {
 	panic("Percentiles called on a StandardResettingHistogram")
 }
 
-func (t *StandardResettingHistogram) Percentile(float64) float64 {
+func (t *standardResettingHistogram) Percentile(float64) float64 {
 	panic("Percentile called on a StandardResettingHistogram")
 }
 
-func (t *StandardResettingHistogram) Mean() float64 {
+func (t *standardResettingHistogram) Mean() float64 {
 	panic("Mean called on a StandardResettingHistogram")
 }
 
 // Values returns a slice with all measurements.
-func (t *StandardResettingHistogram) Values() []int64 {
+func (t *standardResettingHistogram) Values() []int64 {
 	return t.values
 }
 
 // Snapshot resets the timer and returns a read-only copy of its sorted contents.
-func (t *StandardResettingHistogram) Snapshot() Histogram {
+func (t *standardResettingHistogram) Snapshot() Histogram {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
@@ -142,26 +142,26 @@ func (t *StandardResettingHistogram) Snapshot() Histogram {
 
 	sort.Slice(currentValues, func(i, j int) bool { return currentValues[i] < currentValues[j] })
 
-	return &ResettingHistogramSnapshot{
+	return &resettingHistogramSnapshot{
 		values: currentValues,
 	}
 }
 
-func (t *StandardResettingHistogram) Clear() {
+func (t *standardResettingHistogram) Clear() {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	t.values = make([]int64, 0, InitialResettingHistogramSliceCap)
 }
 
 // Record the duration of an event.
-func (t *StandardResettingHistogram) Update(d int64) {
+func (t *standardResettingHistogram) Update(d int64) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	t.values = append(t.values, d)
 }
 
-// ResettingHistogramSnapshot is a point-in-time copy of another ResettingHistogram.
-type ResettingHistogramSnapshot struct {
+// resettingHistogramSnapshot is a point-in-time copy of another resettingHistogram.
+type resettingHistogramSnapshot struct {
 	sync.Mutex
 
 	values     []int64
@@ -169,22 +169,22 @@ type ResettingHistogramSnapshot struct {
 	calculated bool
 }
 
-// Snapshot returns the snapshot.
-func (t *ResettingHistogramSnapshot) Snapshot() Histogram { return t }
+// resettingHistogramSnapshot returns the snapshot.
+func (t *resettingHistogramSnapshot) Snapshot() Histogram { return t }
 
-func (*ResettingHistogramSnapshot) Update(int64) {
+func (*resettingHistogramSnapshot) Update(int64) {
 	panic("Update called on a ResettingHistogramSnapshot")
 }
 
-func (t *ResettingHistogramSnapshot) Clear() {
+func (t *resettingHistogramSnapshot) Clear() {
 	panic("Clear called on a ResettingHistogramSnapshot")
 }
 
-func (t *ResettingHistogramSnapshot) Sample() Sample {
+func (t *resettingHistogramSnapshot) Sample() Sample {
 	panic("Sample called on a ResettingHistogramSnapshot")
 }
 
-func (t *ResettingHistogramSnapshot) Count() int64 {
+func (t *resettingHistogramSnapshot) Count() int64 {
 	t.Lock()
 	defer t.Unlock()
 
@@ -192,14 +192,14 @@ func (t *ResettingHistogramSnapshot) Count() int64 {
 }
 
 // Values returns all values from snapshot.
-func (t *ResettingHistogramSnapshot) Values() []int64 {
+func (t *resettingHistogramSnapshot) Values() []int64 {
 	t.Lock()
 	defer t.Unlock()
 
 	return t.values
 }
 
-func (t *ResettingHistogramSnapshot) Min() int64 {
+func (t *resettingHistogramSnapshot) Min() int64 {
 	t.Lock()
 	defer t.Unlock()
 
@@ -209,7 +209,7 @@ func (t *ResettingHistogramSnapshot) Min() int64 {
 	return 0
 }
 
-func (t *ResettingHistogramSnapshot) Variance() float64 {
+func (t *resettingHistogramSnapshot) Variance() float64 {
 	t.Lock()
 	defer t.Unlock()
 
@@ -226,7 +226,7 @@ func (t *ResettingHistogramSnapshot) Variance() float64 {
 	return sum / float64(len(t.values))
 }
 
-func (t *ResettingHistogramSnapshot) Max() int64 {
+func (t *resettingHistogramSnapshot) Max() int64 {
 	t.Lock()
 	defer t.Unlock()
 
@@ -236,11 +236,11 @@ func (t *ResettingHistogramSnapshot) Max() int64 {
 	return 0
 }
 
-func (t *ResettingHistogramSnapshot) StdDev() float64 {
+func (t *resettingHistogramSnapshot) StdDev() float64 {
 	return math.Sqrt(t.Variance())
 }
 
-func (t *ResettingHistogramSnapshot) Sum() int64 {
+func (t *resettingHistogramSnapshot) Sum() int64 {
 	t.Lock()
 	defer t.Unlock()
 
@@ -252,7 +252,7 @@ func (t *ResettingHistogramSnapshot) Sum() int64 {
 }
 
 // Percentile returns the boundaries for the input percentiles.
-func (t *ResettingHistogramSnapshot) Percentile(percentile float64) float64 {
+func (t *resettingHistogramSnapshot) Percentile(percentile float64) float64 {
 	t.Lock()
 	defer t.Unlock()
 
@@ -262,7 +262,7 @@ func (t *ResettingHistogramSnapshot) Percentile(percentile float64) float64 {
 }
 
 // Percentiles returns the boundaries for the input percentiles.
-func (t *ResettingHistogramSnapshot) Percentiles(percentiles []float64) []float64 {
+func (t *resettingHistogramSnapshot) Percentiles(percentiles []float64) []float64 {
 	t.Lock()
 	defer t.Unlock()
 
@@ -272,7 +272,7 @@ func (t *ResettingHistogramSnapshot) Percentiles(percentiles []float64) []float6
 }
 
 // Mean returns the mean of the snapshotted values
-func (t *ResettingHistogramSnapshot) Mean() float64 {
+func (t *resettingHistogramSnapshot) Mean() float64 {
 	t.Lock()
 	defer t.Unlock()
 
@@ -283,7 +283,7 @@ func (t *ResettingHistogramSnapshot) Mean() float64 {
 	return t.mean
 }
 
-func (t *ResettingHistogramSnapshot) calc(percentiles []float64) (thresholdBoundaries []float64) {
+func (t *resettingHistogramSnapshot) calc(percentiles []float64) (thresholdBoundaries []float64) {
 	count := len(t.values)
 	if count == 0 {
 		thresholdBoundaries = make([]float64, len(percentiles))
