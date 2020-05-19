@@ -150,7 +150,7 @@ func (t *standardResettingHistogram) Snapshot() Histogram {
 func (t *standardResettingHistogram) Clear() {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	t.values = make([]int64, 0, InitialResettingHistogramSliceCap)
+	t.values = t.values[:0]
 }
 
 // Record the duration of an event.
