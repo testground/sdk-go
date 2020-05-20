@@ -112,16 +112,19 @@ func NewMetric(name string, i interface{}) *Metric {
 		t = MetricHistogram
 		m = pools[t].Get().(*Metric)
 		s := v.Snapshot()
-		p := s.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
+		p := s.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999, 0.9999})
 		m.Measures["count"] = float64(s.Count())
 		m.Measures["max"] = float64(s.Max())
 		m.Measures["mean"] = s.Mean()
 		m.Measures["min"] = float64(s.Min())
+		m.Measures["stddev"] = s.StdDev()
+		m.Measures["variance"] = s.Variance()
 		m.Measures["p50"] = p[0]
 		m.Measures["p75"] = p[1]
 		m.Measures["p95"] = p[2]
 		m.Measures["p99"] = p[3]
 		m.Measures["p999"] = p[4]
+		m.Measures["p9999"] = p[5]
 
 	case Meter:
 		t = MetricMeter
@@ -137,7 +140,7 @@ func NewMetric(name string, i interface{}) *Metric {
 		t = MetricTimer
 		m = pools[t].Get().(*Metric)
 		s := v.Snapshot()
-		p := s.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
+		p := s.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999, 0.9999})
 		m.Measures["count"] = float64(s.Count())
 		m.Measures["max"] = float64(s.Max())
 		m.Measures["mean"] = s.Mean()
@@ -149,6 +152,7 @@ func NewMetric(name string, i interface{}) *Metric {
 		m.Measures["p95"] = p[2]
 		m.Measures["p99"] = p[3]
 		m.Measures["p999"] = p[4]
+		m.Measures["p9999"] = p[5]
 		m.Measures["m1"] = s.Rate1()
 		m.Measures["m5"] = s.Rate5()
 		m.Measures["m15"] = s.Rate15()
