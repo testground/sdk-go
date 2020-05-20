@@ -20,12 +20,14 @@ var _ Interface = (*inmemClient)(nil)
 
 // NewInmemClient creates an in-memory sync client for testing.
 func NewInmemClient() Interface {
-	return &inmemClient{
+	c := &inmemClient{
 		states:        make(map[State]int),
 		barriers:      make(map[State][]*Barrier),
 		subscriptions: make(map[*Topic][]reflect.Value),
 		published:     make(map[*Topic][]interface{}),
 	}
+	c.sugarOperations = &sugarOperations{c}
+	return c
 }
 
 // Elemental operations
