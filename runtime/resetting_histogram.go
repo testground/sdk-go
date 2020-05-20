@@ -88,43 +88,43 @@ type standardResettingHistogram struct {
 }
 
 func (t *standardResettingHistogram) Count() int64 {
-	panic("Count called on a standardResettingHistogram")
+	panic("Count called on a resetting histogram; capture a snapshot first")
 }
 
 func (t *standardResettingHistogram) Max() int64 {
-	panic("Max called on a standardResettingHistogram")
+	panic("Max called on a resetting histogram; capture a snapshot first")
 }
 
 func (t *standardResettingHistogram) Min() int64 {
-	panic("Min called on a standardResettingHistogram")
+	panic("Min called on a resetting histogram; capture a snapshot first")
 }
 
 func (t *standardResettingHistogram) StdDev() float64 {
-	panic("StdDev called on a standardResettingHistogram")
+	panic("StdDev called on a resetting histogram; capture a snapshot first")
 }
 
 func (t *standardResettingHistogram) Variance() float64 {
-	panic("Variance called on a standardResettingHistogram")
+	panic("Variance called on a resetting histogram; capture a snapshot first")
 }
 
 func (t *standardResettingHistogram) Sum() int64 {
-	panic("Sum called on a standardResettingHistogram")
+	panic("Sum called on a resetting histogram; capture a snapshot first")
 }
 
 func (t *standardResettingHistogram) Sample() Sample {
-	panic("Sample called on a standardResettingHistogram")
+	panic("Sample called on a resetting histogram; capture a snapshot first")
 }
 
 func (t *standardResettingHistogram) Percentiles([]float64) []float64 {
-	panic("Percentiles called on a standardResettingHistogram")
+	panic("Percentiles called on a resetting histogram; capture a snapshot first")
 }
 
 func (t *standardResettingHistogram) Percentile(float64) float64 {
-	panic("Percentile called on a standardResettingHistogram")
+	panic("Percentile called on a resetting histogram; capture a snapshot first")
 }
 
 func (t *standardResettingHistogram) Mean() float64 {
-	panic("Mean called on a standardResettingHistogram")
+	panic("Mean called on a resetting histogram; capture a snapshot first")
 }
 
 // Values returns a slice with all measurements.
@@ -173,15 +173,15 @@ type resettingHistogramSnapshot struct {
 func (t *resettingHistogramSnapshot) Snapshot() Histogram { return t }
 
 func (*resettingHistogramSnapshot) Update(int64) {
-	panic("Update called on a resettingHistogramSnapshot")
+	panic("Update called on a resetting histogram snapshot")
 }
 
 func (t *resettingHistogramSnapshot) Clear() {
-	panic("Clear called on a resettingHistogramSnapshot")
+	panic("Clear called on a resetting histogram snapshot")
 }
 
 func (t *resettingHistogramSnapshot) Sample() Sample {
-	panic("Sample called on a resettingHistogramSnapshot")
+	panic("Sample called on a resetting histogram snapshot")
 }
 
 func (t *resettingHistogramSnapshot) Count() int64 {
