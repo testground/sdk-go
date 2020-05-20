@@ -2,9 +2,9 @@ package runtime
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -131,19 +131,20 @@ func (m *Metrics) logSinkJSON(filename string) MetricSinkFn {
 	}
 }
 
-func (m *Metrics) writeToInfluxDBSink(measurement string) MetricSinkFn {
+func (m *Metrics) writeToInfluxDBSink(measurementType string) MetricSinkFn {
 	return func(metric *Metric) error {
 		fields := make(map[string]interface{}, len(metric.Measures))
 		for k, v := range metric.Measures {
-			key := strings.Join([]string{metric.Name, metric.Type.String(), k}, ".")
-			fields[key] = v
-		}
+			fields[k] = v
 
-		p, err := client.NewPoint(measurement, m.tags, fields, time.Unix(0, metric.Timestamp))
-		if err != nil {
-			return err
+			measurementName := fmt.Sprintf("%s.%s.%s", measurementType, metric.Name, metric.Type.String())
+
+			p, err := client.NewPoint(measurementName, m.tags, fields, time.Unix(0, metric.Timestamp))
+			if err != nil {
+				return err
+			}
+			m.batcher.WritePoint(p)
 		}
-		m.batcher.WritePoint(p)
 		return nil
 	}
 }
@@ -159,19 +160,19 @@ func (m *Metrics) recordEvent(evt *Event) {
 		tags[k] = v
 	}
 
-	tags["type"] = string(evt.Type)
-
 	if evt.Outcome != "" {
 		tags["outcome"] = string(evt.Outcome)
 	}
 
-	f := map[string]interface{}{
+	fields := map[string]interface{}{
 		"error": evt.Error,
 	}
 
-	p, err := client.NewPoint("events", tags, f)
+	measurement := fmt.Sprintf("events.%s", string(evt.Type))
+	p, err := client.NewPoint(measurement, tags, fields)
 	if err != nil {
 		m.re.RecordMessage("failed to create InfluxDB point: %s", err)
 	}
+
 	m.batcher.WritePoint(p)
 }

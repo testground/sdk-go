@@ -3,6 +3,7 @@ package runtime
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -95,13 +96,13 @@ func NewMetric(name string, i interface{}) *Metric {
 		s := v.Snapshot()
 		m.Measures["rate"] = s.Rate()
 
-	case Gauge:
+	case Gauge: // float64 gauge, aliased in our SDK
 		t = MetricGauge
 		m = pools[t].Get().(*Metric)
 		s := v.Snapshot()
 		m.Measures["value"] = s.Value()
 
-	case metrics.Gauge:
+	case metrics.Gauge: // int64 gauge, used by go runtime metrics
 		t = MetricGauge
 		m = pools[t].Get().(*Metric)
 		s := v.Snapshot()
@@ -158,7 +159,7 @@ func NewMetric(name string, i interface{}) *Metric {
 		m.Measures["meanrate"] = s.RateMean()
 
 	default:
-		panic("unexpected metric type")
+		panic(fmt.Sprintf("unexpected metric type: %v", reflect.TypeOf(v)))
 
 	}
 
