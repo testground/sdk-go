@@ -228,8 +228,8 @@ func TestDiagnosticsDispatchedToInfluxDB(t *testing.T) {
 	time.Sleep(1500 * time.Millisecond)
 
 	tc.RLock()
-	if l := len(tc.batchPoints); l != 24 && l != 130 {
-		t.Fatalf("expected length to be 24 or 130; was: %d", l)
+	if l := len(tc.batchPoints); l != 30 && l != 144 {
+		t.Fatalf("expected length to be 30 or 144; was: %d", l)
 	}
 	tc.RUnlock()
 
