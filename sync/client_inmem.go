@@ -1,0 +1,124 @@
+package sync
+
+import (
+	"context"
+	"reflect"
+	"sync"
+)
+
+type inmemClient struct {
+	sync.Mutex
+	*sugarOperations
+
+	states        map[State]int
+	barriers      map[State][]*Barrier
+	subscriptions map[*Topic][]reflect.Value
+	published     map[*Topic][]interface{}
+}
+
+var _ Interface = (*inmemClient)(nil)
+
+// NewInmemClient creates an in-memory sync client for testing.
+func NewInmemClient() Interface {
+	return &inmemClient{
+		states:        make(map[State]int),
+		barriers:      make(map[State][]*Barrier),
+		subscriptions: make(map[*Topic][]reflect.Value),
+		published:     make(map[*Topic][]interface{}),
+	}
+}
+
+// Elemental operations
+// ====================
+
+func (i *inmemClient) Publish(_ context.Context, topic *Topic, payload interface{}) (seq int64, err error) {
+	i.Lock()
+	defer i.Unlock()
+
+	p, ok := i.published[topic]
+	if !ok {
+		p = make([]interface{}, 0, 10)
+	}
+	p = append(p, payload)
+	i.published[topic] = p
+
+	for _, ch := range i.subscriptions[topic] {
+		ch.Send(reflect.ValueOf(payload))
+	}
+
+	return int64(len(p)), nil
+}
+
+func (i *inmemClient) Subscribe(_ context.Context, topic *Topic, ch interface{}) (*Subscription, error) {
+	i.Lock()
+	defer i.Unlock()
+
+	s, ok := i.subscriptions[topic]
+	if !ok {
+		s = make([]reflect.Value, 0, 10)
+	}
+	chV := reflect.ValueOf(ch)
+	s = append(s, chV)
+	i.subscriptions[topic] = s
+
+	// replay any payloads for this topic.
+	for _, p := range i.published[topic] {
+		chV.Send(reflect.ValueOf(p))
+	}
+
+	return &Subscription{}, nil
+}
+
+func (i *inmemClient) Barrier(_ context.Context, state State, target int) (*Barrier, error) {
+	b := &Barrier{
+		C:      make(chan error, 1),
+		ctx:    context.TODO(),
+		target: int64(target),
+	}
+
+	i.Lock()
+	defer i.Unlock()
+
+	if i.states[state] == target {
+		b.C <- nil
+		close(b.C)
+		return b, nil
+	}
+
+	barriers, ok := i.barriers[state]
+	if !ok {
+		barriers = make([]*Barrier, 0, 10)
+	}
+	barriers = append(barriers, b)
+	i.barriers[state] = barriers
+
+	return b, nil
+}
+
+func (i *inmemClient) SignalEntry(_ context.Context, state State) (after int64, err error) {
+	i.Lock()
+	defer i.Unlock()
+
+	i.states[state]++
+
+	v := int64(i.states[state])
+
+	var idx int
+	for _, b := range i.barriers[state] {
+		if v == b.target {
+			b.C <- nil
+			close(b.C)
+			continue
+		}
+		i.barriers[state][idx] = b
+		idx++
+	}
+
+	i.barriers[state] = i.barriers[state][:idx]
+
+	return v, nil
+}
+
+func (i *inmemClient) Close() error {
+	return nil
+}

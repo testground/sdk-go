@@ -43,6 +43,8 @@ var DefaultRedisOpts = redis.Options{
 }
 
 type Client struct {
+	*sugarOperations
+
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -125,6 +127,8 @@ func newClient(ctx context.Context, log *zap.SugaredLogger, extractor func(ctx c
 		barrierCh: make(chan *newBarrier),
 		newSubCh:  make(chan *newSubscription),
 	}
+
+	c.sugarOperations = &sugarOperations{c}
 
 	c.wg.Add(2)
 	go c.barrierWorker()
