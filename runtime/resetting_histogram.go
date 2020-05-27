@@ -217,7 +217,7 @@ func (t *resettingHistogramSnapshot) Variance() float64 {
 		return 0.0
 	}
 
-	m := t.Mean()
+	m := t._mean()
 	var sum float64
 	for _, v := range t.values {
 		d := float64(v) - m
@@ -276,6 +276,10 @@ func (t *resettingHistogramSnapshot) Mean() float64 {
 	t.Lock()
 	defer t.Unlock()
 
+	return t._mean()
+}
+
+func (t *resettingHistogramSnapshot) _mean() float64 {
 	if !t.calculated {
 		_ = t.calc([]float64{})
 	}
