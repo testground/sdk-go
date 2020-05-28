@@ -161,6 +161,29 @@ func TestBarrierDeadline(t *testing.T) {
 	}
 }
 
+func TestInmemSignalAndWait(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	runenv, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
+	defer runenv.Close()
+
+	client := NewInmemClient()
+	defer client.Close()
+
+	grp, ctx := errgroup.WithContext(ctx)
+	for i := 0; i < 10; i++ {
+		grp.Go(func() error {
+			_, err := client.SignalAndWait(ctx, State("amber"), 10)
+			return err
+		})
+	}
+
+	if err := grp.Wait(); err != nil {
+		t.Fatal(err)
+	}
+}
 func TestSignalAndWait(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
