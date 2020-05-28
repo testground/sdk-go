@@ -3,7 +3,6 @@ package sync
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"strconv"
 	"sync"
@@ -18,10 +17,8 @@ import (
 const (
 	RedisPayloadKey = "p"
 
-	EnvRedisHost  = "REDIS_HOST"
-	EnvRedisPort  = "REDIS_PORT"
-	RedisHostname = "testground-redis"
-	HostHostname  = "host.docker.internal"
+	EnvRedisHost = "REDIS_HOST"
+	EnvRedisPort = "REDIS_PORT"
 )
 
 // ErrNoRunParameters is returned by the generic client when an unbound context
@@ -189,44 +186,19 @@ func redisClient(ctx context.Context, log *zap.SugaredLogger) (client *redis.Cli
 		}
 	}
 
-	var tryHosts []string
-	if host == "" {
-		// Try to resolve the "testground-redis" host from Docker's DNS.
-		//
-		// Fall back to attempting to use `host.docker.internal` which
-		// is only available in macOS and Windows.
-		// Finally, falling back on localhost (for local:exec)
-		tryHosts = []string{RedisHostname, HostHostname, "localhost"}
-	} else {
-		tryHosts = []string{host}
+	log.Debugw("trying redis host", "host", host, "port", port)
+
+	opts := DefaultRedisOpts
+	opts.Addr = fmt.Sprintf("%s:%d", host, port)
+	client = redis.NewClient(&opts).WithContext(ctx)
+
+	if err := client.Ping().Err(); err != nil {
+		_ = client.Close()
+		log.Errorw("failed to ping redis host", "host", host, "port", port, "error", err)
+		return nil, err
 	}
 
-	for _, h := range tryHosts {
-		log.Debugw("resolving redis host", "host", h)
+	log.Debugw("redis ping OK", "opts", opts)
 
-		addrs, err := net.DefaultResolver.LookupIPAddr(ctx, h)
-		if err != nil {
-			log.Debugw("failed to resolve redis host", "host", h, "error", err)
-			continue
-		}
-		for _, addr := range addrs {
-			log.Debugw("trying redis host", "host", h, "address", addr, "error", err)
-			opts := DefaultRedisOpts // copy to be safe.
-			// Use TCPAddr to properly handle IPv6 addresses.
-			opts.Addr = (&net.TCPAddr{IP: addr.IP, Zone: addr.Zone, Port: port}).String()
-			client = redis.NewClient(&opts).WithContext(ctx)
-
-			// PING redis to make sure we're alive.
-			if err := client.Ping().Err(); err != nil {
-				_ = client.Close()
-				log.Debugw("failed to ping redis host", "host", h, "address", addr, "error", err)
-				continue
-			}
-
-			log.Debugw("redis ping OK", "opts", opts)
-
-			return client, nil
-		}
-	}
-	return nil, fmt.Errorf("no viable redis host found")
+	return client, nil
 }

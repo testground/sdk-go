@@ -2,7 +2,6 @@ package sync
 
 import (
 	"context"
-	"net"
 	"os"
 	"testing"
 	"time"
@@ -39,29 +38,9 @@ func TestRedisHost(t *testing.T) {
 	_ = os.Setenv(EnvRedisHost, realHost)
 	client, err = redisClient(ctx, zap.S())
 	if err != nil {
-		t.Errorf("should have found the redis host, failed with: %s", err)
+		t.Errorf("expected to establish connection to redis, but failed with: %s", err)
 	}
-	addr := client.Options().Addr
 	_ = client.Close()
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	hostIP := net.ParseIP(host)
-	if hostIP == nil {
-		t.Fatal("expected host to be an IP")
-	}
-	addrs, err := net.LookupIP(realHost)
-	if err != nil {
-		t.Fatal("failed to resolve redis host")
-	}
-	for _, a := range addrs {
-		if a.Equal(hostIP) {
-			// Success!
-			return
-		}
-	}
-	t.Fatal("redis address not found in list of addresses")
 }
 
 func TestConnUnblock(t *testing.T) {
