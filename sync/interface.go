@@ -5,11 +5,6 @@ import (
 	"io"
 )
 
-// Interface is used by Testground components to enable mocking/stubbing in
-// tests. Consequently, it doesn't have the Must* variants, as those are useful
-// for test plans only.
-//
-// If you're a test plan writer, you should not be using this.
 type Interface interface {
 	io.Closer
 
@@ -21,4 +16,8 @@ type Interface interface {
 	Barrier(ctx context.Context, state State, target int) (*Barrier, error)
 	SignalEntry(ctx context.Context, state State) (after int64, err error)
 	SignalAndWait(ctx context.Context, state State, target int) (seq int64, err error)
+
+	MustBarrier(ctx context.Context, state State, target int) *Barrier
+	MustSignalEntry(ctx context.Context, state State) int64
+	MustSubscribe(ctx context.Context, topic *Topic, ch interface{}) *Subscription
 }

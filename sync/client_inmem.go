@@ -12,19 +12,17 @@ type inmemClient struct {
 
 	states        map[State]int
 	barriers      map[State][]*Barrier
-	subscriptions map[*Topic][]reflect.Value
-	published     map[*Topic][]interface{}
+	subscriptions map[string][]reflect.Value
+	published     map[string][]interface{}
 }
 
-var _ Interface = (*inmemClient)(nil)
-
 // NewInmemClient creates an in-memory sync client for testing.
-func NewInmemClient() Interface {
+func NewInmemClient() *inmemClient {
 	c := &inmemClient{
 		states:        make(map[State]int),
 		barriers:      make(map[State][]*Barrier),
-		subscriptions: make(map[*Topic][]reflect.Value),
-		published:     make(map[*Topic][]interface{}),
+		subscriptions: make(map[string][]reflect.Value),
+		published:     make(map[string][]interface{}),
 	}
 	c.sugarOperations = &sugarOperations{c}
 	return c
@@ -37,14 +35,14 @@ func (i *inmemClient) Publish(_ context.Context, topic *Topic, payload interface
 	i.Lock()
 	defer i.Unlock()
 
-	p, ok := i.published[topic]
+	p, ok := i.published[topic.name]
 	if !ok {
 		p = make([]interface{}, 0, 10)
 	}
 	p = append(p, payload)
-	i.published[topic] = p
+	i.published[topic.name] = p
 
-	for _, ch := range i.subscriptions[topic] {
+	for _, ch := range i.subscriptions[topic.name] {
 		ch.Send(reflect.ValueOf(payload))
 	}
 
@@ -55,16 +53,16 @@ func (i *inmemClient) Subscribe(_ context.Context, topic *Topic, ch interface{})
 	i.Lock()
 	defer i.Unlock()
 
-	s, ok := i.subscriptions[topic]
+	s, ok := i.subscriptions[topic.name]
 	if !ok {
 		s = make([]reflect.Value, 0, 10)
 	}
 	chV := reflect.ValueOf(ch)
 	s = append(s, chV)
-	i.subscriptions[topic] = s
+	i.subscriptions[topic.name] = s
 
 	// replay any payloads for this topic.
-	for _, p := range i.published[topic] {
+	for _, p := range i.published[topic.name] {
 		chV.Send(reflect.ValueOf(p))
 	}
 
