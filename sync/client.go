@@ -17,10 +17,8 @@ import (
 const (
 	RedisPayloadKey = "p"
 
-	EnvRedisHost  = "REDIS_HOST"
-	EnvRedisPort  = "REDIS_PORT"
-	RedisHostname = "testground-redis"
-	HostHostname  = "host.docker.internal"
+	EnvRedisHost = "REDIS_HOST"
+	EnvRedisPort = "REDIS_PORT"
 )
 
 // ErrNoRunParameters is returned by the generic client when an unbound context
