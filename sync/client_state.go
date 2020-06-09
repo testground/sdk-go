@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 )
 
 // Barrier sets a barrier on the supplied State that fires when it reaches its
@@ -72,4 +73,20 @@ func (c *Client) SignalEntry(ctx context.Context, state State) (after int64, err
 
 	c.log.Debugw("new value of state", "key", key, "value", seq)
 	return seq, err
+}
+
+func (c *Client) SignalStageBarrierPassed(ctx context.Context, barrierName string) (err error) {
+	rp := c.extractor(ctx)
+	if rp == nil {
+		return ErrNoRunParameters
+	}
+
+	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
+
+	_, err = c.rclient.SAdd(key, barrierName).Result()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

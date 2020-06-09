@@ -65,7 +65,14 @@ type Client struct {
 //
 // For test plans, a suitable context to pass here is the background context.
 func NewBoundClient(ctx context.Context, runenv *runtime.RunEnv) (*Client, error) {
-	return newClient(ctx, runenv.SLogger(), func(ctx context.Context) *runtime.RunParams {
+	log := runenv.SLogger()
+
+	rclient, err := redisClient(ctx, log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create redis client: %w", err)
+	}
+
+	return newClient(ctx, rclient, log, func(ctx context.Context) *runtime.RunParams {
 		return &runenv.RunParams
 	})
 }
@@ -94,7 +101,16 @@ func MustBoundClient(ctx context.Context, runenv *runtime.RunEnv) *Client {
 // A suitable context to pass here is the background context of the main
 // process.
 func NewGenericClient(ctx context.Context, log *zap.SugaredLogger) (*Client, error) {
-	return newClient(ctx, log, GetRunParams)
+	rclient, err := redisClient(ctx, log)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create redis client: %w", err)
+	}
+
+	return newClient(ctx, rclient, log, GetRunParams)
+}
+
+func NewGenericClientWithRedis(ctx context.Context, rclient *redis.Client, log *zap.SugaredLogger) (*Client, error) {
+	return newClient(ctx, rclient, log, GetRunParams)
 }
 
 // MustGenericClient creates a new generic client by calling NewGenericClient,
@@ -108,19 +124,14 @@ func MustGenericClient(ctx context.Context, log *zap.SugaredLogger) *Client {
 }
 
 // newClient creates a new sync client.
-func newClient(ctx context.Context, log *zap.SugaredLogger, extractor func(ctx context.Context) *runtime.RunParams) (*Client, error) {
-	rclient, err := redisClient(ctx, log)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create redis client: %w", err)
-	}
-
+func newClient(ctx context.Context, redisClient *redis.Client, log *zap.SugaredLogger, extractor func(ctx context.Context) *runtime.RunParams) (*Client, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	c := &Client{
 		ctx:       ctx,
 		cancel:    cancel,
 		log:       log,
 		extractor: extractor,
-		rclient:   rclient,
+		rclient:   redisClient,
 		barrierCh: make(chan *newBarrier),
 		newSubCh:  make(chan *newSubscription),
 	}
@@ -139,7 +150,7 @@ func newClient(ctx context.Context, log *zap.SugaredLogger, extractor func(ctx c
 			for {
 				select {
 				case <-tick.C:
-					stats := rclient.PoolStats()
+					stats := redisClient.PoolStats()
 					log.Debugw("redis pool stats", "stats", stats)
 				case <-ctx.Done():
 					return
