@@ -42,6 +42,11 @@ func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
 		}
 	}
 	c.runenv.RecordMessage(InitialisationSuccessful)
+
+	synccl, ok := c.client.(*sync.Client)
+	if ok {
+		synccl.SignalStageBarrierPassed(ctx, "network-initialized")
+	}
 	return nil
 }
 
