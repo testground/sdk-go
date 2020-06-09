@@ -3,7 +3,9 @@ package network
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
+	"time"
 
 	"github.com/testground/sdk-go/runtime"
 	"github.com/testground/sdk-go/sync"
@@ -34,9 +36,15 @@ func NewClient(client sync.Interface, runenv *runtime.RunEnv) *Client {
 // WaitNetworkInitialized waits for the sidecar to initialize the network, if
 // the sidecar is enabled. If not, it returns immediately.
 func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
+	// random sleep
+	randnum := rand.Int31n(100)
+	if randnum < 5 {
+		time.Sleep(10 * time.Second)
+	}
+
 	synccl, ok := c.client.(*sync.Client)
 	if ok {
-		err := synccl.SignalEvent(ctx, &runtime.Notification{Scope: "stage", EventType: "entry", StageName: "network-initialized"})
+		err := synccl.SignalEvent(ctx, &runtime.Notification{GroupID: c.runenv.TestGroupID, Scope: "stage", EventType: "entry", StageName: "network-initialized"})
 		if err != nil {
 			return err
 		}
@@ -52,7 +60,7 @@ func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
 	c.runenv.RecordMessage(InitialisationSuccessful)
 
 	if ok {
-		err := synccl.SignalEvent(ctx, &runtime.Notification{Scope: "stage", EventType: "exit", StageName: "network-initialized"})
+		err := synccl.SignalEvent(ctx, &runtime.Notification{GroupID: c.runenv.TestGroupID, Scope: "stage", EventType: "exit", StageName: "network-initialized"})
 		if err != nil {
 			return err
 		}

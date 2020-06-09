@@ -38,7 +38,7 @@ func (s *Stager) Run(ctx context.Context) error {
 	for _, st := range s.stages {
 		st := st
 
-		err := s.client.SignalEvent(ctx, &runtime.Notification{Scope: "stage", EventType: "entry", StageName: st.Name})
+		err := s.client.SignalEvent(ctx, &runtime.Notification{GroupID: s.runenv.TestGroupID, Scope: "stage", EventType: "entry", StageName: st.Name})
 		if err != nil {
 			return err
 		}
@@ -57,7 +57,7 @@ func (s *Stager) Run(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			err = s.client.SignalEvent(ctx, &runtime.Notification{Scope: "stage", EventType: "exit", StageName: st.Name})
+			err = s.client.SignalEvent(ctx, &runtime.Notification{GroupID: s.runenv.TestGroupID, Scope: "stage", EventType: "exit", StageName: st.Name})
 			if err != nil {
 				return err
 			}

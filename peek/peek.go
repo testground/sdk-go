@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-redis/redis/v7"
 	"github.com/testground/sdk-go/runtime"
 	"github.com/testground/sdk-go/sync"
@@ -61,7 +60,7 @@ var DefaultRedisOpts = redis.Options{
 ////spew.Dump(curr)
 //}
 
-func MonitorBarriers(rp *runtime.RunParams) {
+func MonitorBarriers(rp *runtime.RunParams, lastid string) (retlastid string, nots []*runtime.Notification) {
 	host := "testground-infra-redis-headless"
 	port := 6379
 	opts := DefaultRedisOpts
@@ -71,26 +70,33 @@ func MonitorBarriers(rp *runtime.RunParams) {
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
 
 	args := new(redis.XReadArgs)
-	args.Streams = []string{key}
-	args.Block = 0  // block forever if no elements are available
-	args.Count = 10 // max 10 elements per stream
+	args.Streams = []string{key, lastid}
+	args.Block = 1 * time.Second
+	args.Count = 10000
 
 	streams, err := client.XRead(args).Result()
 	if err != nil {
+		if err == redis.Nil {
+			return lastid, nil
+		}
+
 		panic(err)
 	}
 
 	for _, xr := range streams {
 		for _, msg := range xr.Messages {
-			payload := msg.Values[sync.RedisPayloadKey].([]byte)
+			payload := msg.Values[sync.RedisPayloadKey].(string)
 
-			ev := &runtime.Notification{}
-			err := json.Unmarshal(payload, ev)
+			notification := &runtime.Notification{}
+			err := json.Unmarshal([]byte(payload), notification)
 			if err != nil {
 				panic(err)
 			}
 
-			spew.Dump(ev)
+			nots = append(nots, notification)
+
+			retlastid = msg.ID
 		}
 	}
+	return
 }
