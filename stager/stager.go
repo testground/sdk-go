@@ -38,7 +38,11 @@ func (s *Stager) Run(ctx context.Context) error {
 	for _, st := range s.stages {
 		st := st
 
-		_, err := s.client.SignalAndWait(ctx, sync.State(st.Name+":begin"), s.runenv.TestInstanceCount)
+		err := s.client.SignalEvent(ctx, &runtime.Notification{Scope: "stage", EventType: "entry", StageName: st.Name})
+		if err != nil {
+			return err
+		}
+		_, err = s.client.SignalAndWait(ctx, sync.State(st.Name+":begin"), s.runenv.TestInstanceCount)
 		if err != nil {
 			return err
 		}
@@ -53,11 +57,11 @@ func (s *Stager) Run(ctx context.Context) error {
 			if err != nil {
 				return err
 			}
-			_, err = s.client.SignalAndWait(ctx, sync.State(st.Name+":end"), s.runenv.TestInstanceCount)
+			err = s.client.SignalEvent(ctx, &runtime.Notification{Scope: "stage", EventType: "exit", StageName: st.Name})
 			if err != nil {
 				return err
 			}
-			err = s.client.SignalStageBarrierPassed(ctx, st.Name)
+			_, err = s.client.SignalAndWait(ctx, sync.State(st.Name+":end"), s.runenv.TestInstanceCount)
 			if err != nil {
 				return err
 			}

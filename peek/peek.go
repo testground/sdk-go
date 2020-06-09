@@ -1,12 +1,14 @@
 package peek
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-redis/redis/v7"
 	"github.com/testground/sdk-go/runtime"
+	"github.com/testground/sdk-go/sync"
 )
 
 var DefaultRedisOpts = redis.Options{
@@ -23,6 +25,42 @@ var DefaultRedisOpts = redis.Options{
 	MaxConnAge:         2 * time.Minute,
 }
 
+//func MonitorBarriers(rp *runtime.RunParams) {
+//host := "testground-infra-redis-headless"
+//port := 6379
+//opts := DefaultRedisOpts
+//opts.Addr = fmt.Sprintf("%s:%d", host, port)
+//client := redis.NewClient(&opts)
+
+//key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
+
+//members, err := client.SMembers(key).Result()
+//if err != nil {
+//panic(err)
+//}
+
+//spew.Dump(members)
+
+////vals, err := client.MGet(key).Result()
+////if err != nil {
+////panic(err)
+////}
+
+////v := vals[0]
+
+////if v == nil {
+////return
+////}
+
+////curr, err := strconv.ParseInt(v.(string), 10, 64)
+////if err != nil {
+////panic(err)
+////}
+
+////fmt.Println(curr)
+////spew.Dump(curr)
+//}
+
 func MonitorBarriers(rp *runtime.RunParams) {
 	host := "testground-infra-redis-headless"
 	port := 6379
@@ -32,29 +70,27 @@ func MonitorBarriers(rp *runtime.RunParams) {
 
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
 
-	members, err := client.SMembers(key).Result()
+	args := new(redis.XReadArgs)
+	args.Streams = []string{key}
+	args.Block = 0  // block forever if no elements are available
+	args.Count = 10 // max 10 elements per stream
+
+	streams, err := client.XRead(args).Result()
 	if err != nil {
 		panic(err)
 	}
 
-	spew.Dump(members)
+	for _, xr := range streams {
+		for _, msg := range xr.Messages {
+			payload := msg.Values[sync.RedisPayloadKey].([]byte)
 
-	//vals, err := client.MGet(key).Result()
-	//if err != nil {
-	//panic(err)
-	//}
+			ev := &runtime.Notification{}
+			err := json.Unmarshal(payload, ev)
+			if err != nil {
+				panic(err)
+			}
 
-	//v := vals[0]
-
-	//if v == nil {
-	//return
-	//}
-
-	//curr, err := strconv.ParseInt(v.(string), 10, 64)
-	//if err != nil {
-	//panic(err)
-	//}
-
-	//fmt.Println(curr)
-	//spew.Dump(curr)
+			spew.Dump(ev)
+		}
+	}
 }
