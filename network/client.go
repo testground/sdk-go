@@ -59,7 +59,9 @@ func (c *Client) MustWaitNetworkInitialized(ctx context.Context) {
 // either when the sidecar signals back to us, or when the context expires.
 func (c *Client) ConfigureNetwork(ctx context.Context, config *Config) (err error) {
 	if !c.runenv.TestSidecar {
-		return fmt.Errorf("failed to configure network; running in a sidecar-less environment")
+		msg := "ignoring network change request; running in a sidecar-less environment"
+		c.runenv.SLogger().Named("netclient").Warnf(msg)
+		return nil
 	}
 
 	hostname, err := os.Hostname()
