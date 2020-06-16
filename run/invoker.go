@@ -1,7 +1,6 @@
 package run
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
@@ -13,9 +12,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/testground/sdk-go/network"
 	"github.com/testground/sdk-go/runtime"
-	"github.com/testground/sdk-go/sync"
 )
 
 const (
@@ -25,61 +22,11 @@ const (
 	// instance will lead to a collision. Therefore we fallback to 0.
 	HTTPPort         = 6060
 	HTTPPortFallback = 0
-
-	StateInitializedGlobal   = sync.State("initialized_global")
-	StateInitializedGroupFmt = "initialized_group_%s"
 )
-
-// InitSyncClientFactory is the function that will be called to initialize a
-// sync client as part of an InitContext.
-//
-// Replaced in testing.
-var InitSyncClientFactory = func(ctx context.Context, env *runtime.RunEnv) sync.Client {
-	// cannot assign sync.MustBoundClient directly because Go can't infer the contravariance
-	// in the return type (i.e. that *sync.DefaultClient satisfies sync.Client).
-	return sync.MustBoundClient(ctx, env)
-}
 
 // HTTPListenAddr will be set to the listener address _before_ the test case is
 // invoked. If we were unable to start the listener, this value will be "".
 var HTTPListenAddr string
-
-// InitContext encapsulates a sync client, a net client, and global and
-// group-scoped seq numbers assigned to this test instance by the sync service.
-//
-// The states we signal to acquire the global and group-scoped seq numbers are:
-//  - initialized_global
-//  - initialized_group_<id>
-type InitContext struct {
-	SyncClient sync.Client
-	NetClient  *network.Client
-	GlobalSeq  int64
-	GroupSeq   int64
-}
-
-// init can be safely invoked on a nil reference.
-func (ic *InitContext) init(runenv *runtime.RunEnv) {
-	var (
-		grpstate  = sync.State(fmt.Sprintf(StateInitializedGroupFmt, runenv.TestGroupID))
-		client    = InitSyncClientFactory(context.Background(), runenv)
-		netclient = network.NewClient(client, runenv)
-	)
-
-	netclient.MustWaitNetworkInitialized(context.Background())
-
-	*ic = InitContext{
-		SyncClient: client,
-		NetClient:  netclient,
-		GlobalSeq:  client.MustSignalEntry(context.Background(), StateInitializedGlobal),
-		GroupSeq:   client.MustSignalEntry(context.Background(), grpstate),
-	}
-}
-
-func (ic *InitContext) close() {
-	if err := ic.SyncClient.Close(); err != nil {
-		panic(err)
-	}
-}
 
 type TestCaseFn func(env *runtime.RunEnv) error
 
