@@ -30,6 +30,16 @@ const (
 	StateInitializedGroupFmt = "initialized_group_%s"
 )
 
+// InitSyncClientFactory is the function that will be called to initialize a
+// sync client as part of an InitContext.
+//
+// Replaced in testing.
+var InitSyncClientFactory = func(ctx context.Context, env *runtime.RunEnv) sync.Interface {
+	// cannot assign sync.MustBoundClient directly because Go can't infer the contravariance
+	// in the return type (i.e. that *sync.Client satisfies sync.Interface).
+	return sync.MustBoundClient(ctx, env)
+}
+
 // HTTPListenAddr will be set to the listener address _before_ the test case is
 // invoked. If we were unable to start the listener, this value will be "".
 var HTTPListenAddr string
@@ -51,8 +61,8 @@ type InitContext struct {
 func (ic *InitContext) init(runenv *runtime.RunEnv) {
 	var (
 		grpstate  = sync.State(fmt.Sprintf(StateInitializedGroupFmt, runenv.TestGroupID))
-		client    = sync.MustBoundClient(context.Background(), runenv)
-		netclient = network.NewClient(ic.SyncClient, runenv)
+		client    = InitSyncClientFactory(context.Background(), runenv)
+		netclient = network.NewClient(client, runenv)
 	)
 
 	netclient.MustWaitNetworkInitialized(context.Background())
@@ -79,7 +89,7 @@ type TestCaseFn func(env *runtime.RunEnv) error
 //
 // The initialization routine is common scaffolding that gets repeated across
 // the test plans we've seen. We package it here in an attempt to keep your
-// code try.
+// code DRY.
 //
 // It consists of:
 //
@@ -123,7 +133,7 @@ func Invoke(fn interface{}) {
 }
 
 func invoke(runenv *runtime.RunEnv, fn interface{}) {
-	setupHTTPListener(runenv)
+	maybeSetupHTTPListener(runenv)
 
 	runenv.RecordStart()
 
@@ -195,7 +205,12 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 	runenv.RecordMessage("io closed")
 }
 
-func setupHTTPListener(runenv *runtime.RunEnv) {
+func maybeSetupHTTPListener(runenv *runtime.RunEnv) {
+	if HTTPListenAddr != "" {
+		// already set up.
+		return
+	}
+
 	addr := fmt.Sprintf("0.0.0.0:%d", HTTPPort)
 	l, err := net.Listen("tcp", addr)
 	if err != nil {

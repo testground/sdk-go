@@ -60,7 +60,7 @@ func (c *Client) MustWaitNetworkInitialized(ctx context.Context) {
 func (c *Client) ConfigureNetwork(ctx context.Context, config *Config) (err error) {
 	if !c.runenv.TestSidecar {
 		msg := "ignoring network change request; running in a sidecar-less environment"
-		c.runenv.SLogger().Named("netclient").Warnf(msg)
+		c.runenv.SLogger().Named("netclient").Warn(msg)
 		return nil
 	}
 
