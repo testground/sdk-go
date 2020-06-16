@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (c *Client) barrierWorker() {
+func (c *DefaultClient) barrierWorker() {
 	defer c.wg.Done()
 
 	var (
@@ -106,7 +106,7 @@ func (c *Client) barrierWorker() {
 			continue
 		}
 
-		// Get the values of all pending states at once, under the context of the Client.
+		// Get the values of all pending states at once, under the context of the DefaultClient.
 		log.Debugw("getting barrier values", "keys", keys)
 		vals, err := c.rclient.MGet(keys...).Result()
 		if err != nil {
@@ -148,7 +148,7 @@ func (c *Client) barrierWorker() {
 	}
 }
 
-func (c *Client) subscriptionWorker() {
+func (c *DefaultClient) subscriptionWorker() {
 	defer c.wg.Done()
 
 	var (

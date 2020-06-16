@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-type Interface interface {
+type Client interface {
 	io.Closer
 
 	Publish(ctx context.Context, topic *Topic, payload interface{}) (seq int64, err error)

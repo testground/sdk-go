@@ -22,7 +22,7 @@ type subscriptionConsumer struct {
 	conn     *redis.Conn
 	clientid int64 // atomic
 
-	c   *Client
+	c   *DefaultClient
 	log *zap.SugaredLogger
 
 	connErr error

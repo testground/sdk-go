@@ -6,7 +6,7 @@ import (
 )
 
 type sugarOperations struct {
-	Interface
+	Client
 }
 
 // PublishAndWait composes Publish and a Barrier. It first publishes the

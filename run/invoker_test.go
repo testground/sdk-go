@@ -13,7 +13,7 @@ import (
 
 func init() {
 	syncClient := sync.NewInmemClient()
-	InitSyncClientFactory = func(_ context.Context, _ *runtime.RunEnv) sync.Interface {
+	InitSyncClientFactory = func(_ context.Context, _ *runtime.RunEnv) sync.Client {
 		return syncClient
 	}
 }

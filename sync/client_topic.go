@@ -17,7 +17,7 @@ import (
 // topic, or an error if one ocurred, starting with 1 (for the first item).
 //
 // If error is non-nil, the sequence number must be disregarded.
-func (c *Client) Publish(ctx context.Context, topic *Topic, payload interface{}) (seq int64, err error) {
+func (c *DefaultClient) Publish(ctx context.Context, topic *Topic, payload interface{}) (seq int64, err error) {
 	rp := c.extractor(ctx)
 	if rp == nil {
 		return -1, ErrNoRunParameters
@@ -70,7 +70,7 @@ func (c *Client) Publish(ctx context.Context, topic *Topic, payload interface{})
 // MustPublish calls Publish, panicking if it errors.
 //
 // Suitable for shorthanding in test plans.
-func (c *Client) MustPublish(ctx context.Context, topic *Topic, payload interface{}) (seq int64) {
+func (c *DefaultClient) MustPublish(ctx context.Context, topic *Topic, payload interface{}) (seq int64) {
 	seq, err := c.Publish(ctx, topic, payload)
 	if err != nil {
 		panic(err)
@@ -86,8 +86,8 @@ func (c *Client) MustPublish(ctx context.Context, topic *Topic, payload interfac
 // method will error immediately.
 //
 // The caller must consume from this channel promptly; failure to do so will
-// backpressure the Client's subscription event loop.
-func (c *Client) Subscribe(ctx context.Context, topic *Topic, ch interface{}) (*Subscription, error) {
+// backpressure the DefaultClient's subscription event loop.
+func (c *DefaultClient) Subscribe(ctx context.Context, topic *Topic, ch interface{}) (*Subscription, error) {
 	rp := c.extractor(ctx)
 	if rp == nil {
 		return nil, ErrNoRunParameters
@@ -163,7 +163,7 @@ func (c *Client) Subscribe(ctx context.Context, topic *Topic, ch interface{}) (*
 // MustSubscribe calls Subscribe, panicking if it errors.
 //
 // Suitable for shorthanding in test plans.
-func (c *Client) MustSubscribe(ctx context.Context, topic *Topic, ch interface{}) (sub *Subscription) {
+func (c *DefaultClient) MustSubscribe(ctx context.Context, topic *Topic, ch interface{}) (sub *Subscription) {
 	sub, err := c.Subscribe(ctx, topic, ch)
 	if err != nil {
 		panic(err)

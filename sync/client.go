@@ -39,7 +39,7 @@ var DefaultRedisOpts = redis.Options{
 	MaxConnAge:         2 * time.Minute,
 }
 
-type Client struct {
+type DefaultClient struct {
 	*sugarOperations
 
 	ctx    context.Context
@@ -55,7 +55,7 @@ type Client struct {
 	newSubCh  chan *newSubscription
 }
 
-// NewBoundClient returns a new sync Client that is bound to the provided
+// NewBoundClient returns a new sync DefaultClient that is bound to the provided
 // RunEnv. All operations will be automatically scoped to the keyspace of that
 // run.
 //
@@ -64,7 +64,7 @@ type Client struct {
 // closure, the user should call Close().
 //
 // For test plans, a suitable context to pass here is the background context.
-func NewBoundClient(ctx context.Context, runenv *runtime.RunEnv) (*Client, error) {
+func NewBoundClient(ctx context.Context, runenv *runtime.RunEnv) (*DefaultClient, error) {
 	return newClient(ctx, runenv.SLogger(), func(ctx context.Context) *runtime.RunParams {
 		return &runenv.RunParams
 	})
@@ -72,7 +72,7 @@ func NewBoundClient(ctx context.Context, runenv *runtime.RunEnv) (*Client, error
 
 // MustBoundClient creates a new bound client by calling NewBoundClient, and
 // panicking if it errors.
-func MustBoundClient(ctx context.Context, runenv *runtime.RunEnv) *Client {
+func MustBoundClient(ctx context.Context, runenv *runtime.RunEnv) *DefaultClient {
 	c, err := NewBoundClient(ctx, runenv)
 	if err != nil {
 		panic(err)
@@ -80,7 +80,7 @@ func MustBoundClient(ctx context.Context, runenv *runtime.RunEnv) *Client {
 	return c
 }
 
-// NewGenericClient returns a new sync Client that is bound to no RunEnv.
+// NewGenericClient returns a new sync DefaultClient that is bound to no RunEnv.
 // It is intended to be used by testground services like the sidecar.
 //
 // All operations expect to find the RunParams of the run to scope its actions
@@ -93,13 +93,13 @@ func MustBoundClient(ctx context.Context, runenv *runtime.RunEnv) *Client {
 //
 // A suitable context to pass here is the background context of the main
 // process.
-func NewGenericClient(ctx context.Context, log *zap.SugaredLogger) (*Client, error) {
+func NewGenericClient(ctx context.Context, log *zap.SugaredLogger) (*DefaultClient, error) {
 	return newClient(ctx, log, GetRunParams)
 }
 
 // MustGenericClient creates a new generic client by calling NewGenericClient,
 // and panicking if it errors.
-func MustGenericClient(ctx context.Context, log *zap.SugaredLogger) *Client {
+func MustGenericClient(ctx context.Context, log *zap.SugaredLogger) *DefaultClient {
 	c, err := NewGenericClient(ctx, log)
 	if err != nil {
 		panic(err)
@@ -108,14 +108,14 @@ func MustGenericClient(ctx context.Context, log *zap.SugaredLogger) *Client {
 }
 
 // newClient creates a new sync client.
-func newClient(ctx context.Context, log *zap.SugaredLogger, extractor func(ctx context.Context) *runtime.RunParams) (*Client, error) {
+func newClient(ctx context.Context, log *zap.SugaredLogger, extractor func(ctx context.Context) *runtime.RunParams) (*DefaultClient, error) {
 	rclient, err := redisClient(ctx, log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create redis client: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
-	c := &Client{
+	c := &DefaultClient{
 		ctx:       ctx,
 		cancel:    cancel,
 		log:       log,
@@ -152,7 +152,7 @@ func newClient(ctx context.Context, log *zap.SugaredLogger, extractor func(ctx c
 }
 
 // Close closes this client, cancels ongoing operations, and releases resources.
-func (c *Client) Close() error {
+func (c *DefaultClient) Close() error {
 	c.cancel()
 	c.wg.Wait()
 

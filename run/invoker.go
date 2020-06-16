@@ -34,9 +34,9 @@ const (
 // sync client as part of an InitContext.
 //
 // Replaced in testing.
-var InitSyncClientFactory = func(ctx context.Context, env *runtime.RunEnv) sync.Interface {
+var InitSyncClientFactory = func(ctx context.Context, env *runtime.RunEnv) sync.Client {
 	// cannot assign sync.MustBoundClient directly because Go can't infer the contravariance
-	// in the return type (i.e. that *sync.Client satisfies sync.Interface).
+	// in the return type (i.e. that *sync.DefaultClient satisfies sync.Client).
 	return sync.MustBoundClient(ctx, env)
 }
 
@@ -51,7 +51,7 @@ var HTTPListenAddr string
 //  - initialized_global
 //  - initialized_group_<id>
 type InitContext struct {
-	SyncClient sync.Interface
+	SyncClient sync.Client
 	NetClient  *network.Client
 	GlobalSeq  int64
 	GroupSeq   int64

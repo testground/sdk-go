@@ -268,7 +268,7 @@ func consumeOrdered(t *testing.T, ctx context.Context, ch interface{}, values []
 	}
 }
 
-func produce(t *testing.T, client *Client, topic *Topic, values []TestPayload, pointer bool) {
+func produce(t *testing.T, client *DefaultClient, topic *Topic, values []TestPayload, pointer bool) {
 	for i, s := range values {
 		var v interface{}
 		if pointer {
