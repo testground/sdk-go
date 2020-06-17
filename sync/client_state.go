@@ -11,18 +11,18 @@ import (
 // If the barrier is satisfied, the value sent will be nil.
 //
 // When the context fires, the context's error will be propagated instead. The
-// same will occur if the Client's context fires.
+// same will occur if the DefaultClient's context fires.
 //
 // If an internal error occurs,
 //
 // The returned Barrier object contains a channel (C) that fires when the
 // barrier reaches its target, is cancelled, or fails.
 //
-// The Barrier channel is owned by the Client, and by no means should the caller
+// The Barrier channel is owned by the DefaultClient, and by no means should the caller
 // close it.
 // It is safe to use a non-cancellable context here, like the background
 // context. No cancellation is needed unless you want to stop the process early.
-func (c *Client) Barrier(ctx context.Context, state State, target int) (*Barrier, error) {
+func (c *DefaultClient) Barrier(ctx context.Context, state State, target int) (*Barrier, error) {
 	// a barrier with target zero is satisfied immediately; log a warning as
 	// this is probably programmer error.
 	if target == 0 {
@@ -54,7 +54,7 @@ func (c *Client) Barrier(ctx context.Context, state State, target int) (*Barrier
 
 // SignalEntry increments the state counter by one, returning the value of the
 // new value of the counter, or an error if the operation fails.
-func (c *Client) SignalEntry(ctx context.Context, state State) (after int64, err error) {
+func (c *DefaultClient) SignalEntry(ctx context.Context, state State) (after int64, err error) {
 	rp := c.extractor(ctx)
 	if rp == nil {
 		return -1, ErrNoRunParameters

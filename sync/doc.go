@@ -8,9 +8,9 @@
 //
 // Constructing sync.Clients
 //
-// To use the sync service, test plan writers must create a sync.Client via the
+// To use the sync service, test plan writers must create a sync.DefaultClient via the
 // sync.NewBoundClient constructor, passing a context that governs the lifetime
-// of the sync.Client, as well as a runtime.RunEnv to bind to. All sync
+// of the sync.DefaultClient, as well as a runtime.RunEnv to bind to. All sync
 // operations will be automatically scoped/namespaced to the runtime.RunEnv.
 //
 // Infrastructure services, such as sidecar instances, can create generic
@@ -21,7 +21,7 @@
 //
 // Recommendations for test plan writers
 //
-// All constructors and methods on sync.Client have Must* versions, which panic
+// All constructors and methods on sync.DefaultClient have Must* versions, which panic
 // if an error occurs. Using these methods in combination with runtime.Invoke
 // is safe, as the runner captures panics and records them as test crashes. The
 // resulting code will be less pedantic.

@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-type Interface interface {
+type Client interface {
 	io.Closer
 
 	Publish(ctx context.Context, topic *Topic, payload interface{}) (seq int64, err error)
@@ -20,4 +20,9 @@ type Interface interface {
 	MustBarrier(ctx context.Context, state State, target int) *Barrier
 	MustSignalEntry(ctx context.Context, state State) int64
 	MustSubscribe(ctx context.Context, topic *Topic, ch interface{}) *Subscription
+	MustPublish(ctx context.Context, topic *Topic, payload interface{}) (seq int64)
+
+	MustPublishAndWait(ctx context.Context, topic *Topic, payload interface{}, state State, target int) (seq int64)
+	MustPublishSubscribe(ctx context.Context, topic *Topic, payload interface{}, ch interface{}) (seq int64, sub *Subscription)
+	MustSignalAndWait(ctx context.Context, state State, target int) (seq int64)
 }

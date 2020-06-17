@@ -1,4 +1,4 @@
-package runtime
+package run
 
 import (
 	"fmt"
@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/testground/sdk-go/runtime"
 )
 
 const (
@@ -26,30 +28,63 @@ const (
 // invoked. If we were unable to start the listener, this value will be "".
 var HTTPListenAddr string
 
-type TestCaseFn func(env *RunEnv) error
+type TestCaseFn func(env *runtime.RunEnv) error
+
+// InitializedTestCaseFn allows users to indicate they want a basic
+// initialization routine to be run before yielding control to the test case
+// function itself.
+//
+// The initialization routine is common scaffolding that gets repeated across
+// the test plans we've seen. We package it here in an attempt to keep your
+// code DRY.
+//
+// It consists of:
+//
+//  1. Initializing a sync client, bound to the runenv.
+//  2. Initializing a net client.
+//  3. Waiting for the network to initialize.
+//  4. Claiming a global sequence number.
+//  5. Claiming a group-scoped sequence number.
+//
+// The injected InitContext is a bundle containing the result, and you can use
+// its objects in your test logic. In fact, you don't need to close them
+// (sync client, net client), as the SDK manages that for you.
+type InitializedTestCaseFn func(env *runtime.RunEnv, initCtx *InitContext) error
 
 // InvokeMap takes a map of test case names and their functions, and calls the
 // matched test case, or panics if the name is unrecognised.
-func InvokeMap(cases map[string]TestCaseFn) {
-	Invoke(func(runenv *RunEnv) error {
-		name := runenv.TestCase
-		if c, ok := cases[name]; ok {
-			return c(runenv)
-		} else {
-			panic(fmt.Sprintf("unrecognized test case: %s", name))
-		}
-	})
+//
+// Supported function signatures are TestCaseFn and InitializedTestCaseFn.
+// Refer to their respective godocs for more info.
+func InvokeMap(cases map[string]interface{}) {
+	runenv := runtime.CurrentRunEnv()
+	defer runenv.Close()
+
+	if fn, ok := cases[runenv.TestCase]; ok {
+		invoke(runenv, fn)
+	} else {
+		msg := fmt.Sprintf("unrecognized test case: %s", runenv.TestCase)
+		panic(msg)
+	}
 }
 
 // Invoke runs the passed test-case and reports the result.
-func Invoke(tc TestCaseFn) {
-	runenv := CurrentRunEnv()
+//
+// Supported function signatures are TestCaseFn and InitializedTestCaseFn.
+// Refer to their respective godocs for more info.
+func Invoke(fn interface{}) {
+	runenv := runtime.CurrentRunEnv()
 	defer runenv.Close()
 
-	setupHTTPListener(runenv)
+	invoke(runenv, fn)
+}
+
+func invoke(runenv *runtime.RunEnv, fn interface{}) {
+	maybeSetupHTTPListener(runenv)
 
 	runenv.RecordStart()
 
+	var err error
 	errfile, err := runenv.CreateRawAsset("run.err")
 	if err != nil {
 		runenv.RecordCrash(err)
@@ -92,7 +127,19 @@ func Invoke(tc TestCaseFn) {
 		}
 	}()
 
-	err = tc(runenv)
+	switch f := fn.(type) {
+	case TestCaseFn:
+		err = f(runenv)
+	case InitializedTestCaseFn:
+		ic := new(InitContext)
+		ic.init(runenv)
+		defer ic.close()
+		err = f(runenv, ic)
+	default:
+		msg := fmt.Sprintf("unexpected function passed to Invoke*; expected types: TestCaseFn, InitializedTestCaseFn; was: %T", f)
+		panic(msg)
+	}
+
 	switch err {
 	case nil:
 		runenv.RecordSuccess()
@@ -105,7 +152,12 @@ func Invoke(tc TestCaseFn) {
 	runenv.RecordMessage("io closed")
 }
 
-func setupHTTPListener(runenv *RunEnv) {
+func maybeSetupHTTPListener(runenv *runtime.RunEnv) {
+	if HTTPListenAddr != "" {
+		// already set up.
+		return
+	}
+
 	addr := fmt.Sprintf("0.0.0.0:%d", HTTPPort)
 	l, err := net.Listen("tcp", addr)
 	if err != nil {

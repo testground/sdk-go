@@ -19,7 +19,7 @@ var GCFrequency = 30 * time.Minute
 //
 // An optional notifyCh can be passed in to be notified everytime GC runs, with
 // the result of each run. This is mostly used for testing.
-func (c *Client) EnableBackgroundGC(notifyCh chan error) {
+func (c *DefaultClient) EnableBackgroundGC(notifyCh chan error) {
 	go func() {
 		for {
 			err := c.RunGC()
@@ -42,7 +42,7 @@ func (c *Client) EnableBackgroundGC(notifyCh chan error) {
 // with SCAN, fetching the last access time of all keys via a pipelined OBJECT
 // IDLETIME, and deleting the keys that have been idle for greater or equal to
 // GCLastAccessThreshold.
-func (c *Client) RunGC() error {
+func (c *DefaultClient) RunGC() error {
 	var (
 		del    []string // delete set, recycled.
 		cursor uint64   // Redis cursor ID, reset on every iteration.

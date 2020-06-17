@@ -13,7 +13,9 @@ import (
 func (c *Client) GetDataNetworkIP() (net.IP, error) {
 	re := c.runenv
 	if !re.TestSidecar {
-		return nil, ErrNoTrafficShaping
+		// this must be a local:exec runner and we currently don't support
+		// traffic shaping on it for now, just return the loopback address
+		return net.ParseIP("127.0.0.1"), nil
 	}
 
 	ifaces, err := net.Interfaces()

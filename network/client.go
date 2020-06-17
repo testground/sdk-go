@@ -19,12 +19,12 @@ const (
 
 type Client struct {
 	runenv *runtime.RunEnv
-	client sync.Interface
+	client sync.Client
 }
 
 // NewClient returns a new network client. Use this client to request network
 // changes, such as setting latencies, jitter, packet loss, connectedness, etc.
-func NewClient(client sync.Interface, runenv *runtime.RunEnv) *Client {
+func NewClient(client sync.Client, runenv *runtime.RunEnv) *Client {
 	return &Client{
 		runenv: runenv,
 		client: client,
@@ -59,7 +59,9 @@ func (c *Client) MustWaitNetworkInitialized(ctx context.Context) {
 // either when the sidecar signals back to us, or when the context expires.
 func (c *Client) ConfigureNetwork(ctx context.Context, config *Config) (err error) {
 	if !c.runenv.TestSidecar {
-		return fmt.Errorf("failed to configure network; running in a sidecar-less environment")
+		msg := "ignoring network change request; running in a sidecar-less environment"
+		c.runenv.SLogger().Named("netclient").Warn(msg)
+		return nil
 	}
 
 	hostname, err := os.Hostname()

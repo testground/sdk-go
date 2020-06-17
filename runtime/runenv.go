@@ -2,7 +2,7 @@ package runtime
 
 import (
 	"os"
-	"sync"
+	gosync "sync"
 	"time"
 
 	"github.com/avast/retry-go"
@@ -33,7 +33,7 @@ type RunEnv struct {
 	logger  *zap.Logger
 	metrics *Metrics
 
-	wg        sync.WaitGroup
+	wg        gosync.WaitGroup
 	closeCh   chan struct{}
 	assetsErr error
 
