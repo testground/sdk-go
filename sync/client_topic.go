@@ -67,17 +67,6 @@ func (c *DefaultClient) Publish(ctx context.Context, topic *Topic, payload inter
 	return seq, err
 }
 
-// MustPublish calls Publish, panicking if it errors.
-//
-// Suitable for shorthanding in test plans.
-func (c *DefaultClient) MustPublish(ctx context.Context, topic *Topic, payload interface{}) (seq int64) {
-	seq, err := c.Publish(ctx, topic, payload)
-	if err != nil {
-		panic(err)
-	}
-	return seq
-}
-
 // Subscribe subscribes to a topic, consuming ordered, typed elements from
 // index 0, and sending them to channel ch.
 //
