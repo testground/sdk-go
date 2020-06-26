@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -131,15 +132,41 @@ func (m *Metrics) logSinkJSON(filename string) MetricSinkFn {
 	}
 }
 
+func (m *Metrics) processTags(customtags []string) map[string]string {
+	mp := make(map[string]string, len(m.tags)+len(customtags))
+
+	for _, t := range customtags {
+		kv := strings.Split(t, "=")
+
+		mp[kv[0]] = kv[1]
+	}
+	return mp
+}
+
 func (m *Metrics) writeToInfluxDBSink(measurementType string) MetricSinkFn {
 	return func(metric *Metric) error {
 		fields := make(map[string]interface{}, len(metric.Measures))
 		for k, v := range metric.Measures {
 			fields[k] = v
 
-			measurementName := fmt.Sprintf("%s.%s.%s", measurementType, metric.Name, metric.Type.String())
+			vals := strings.Split(metric.Name, ",")
 
-			p, err := client.NewPoint(measurementName, m.tags, fields, time.Unix(0, metric.Timestamp))
+			var tags map[string]string
+			// check if we have custom metric tags
+			if len(vals) > 1 {
+				tags = m.processTags(vals[1:]) // ignore first, which is measurement name
+
+				// copy global tags
+				for k, v := range m.tags {
+					tags[k] = v
+				}
+			} else {
+				tags = m.tags
+			}
+
+			measurementName := fmt.Sprintf("%s.%s.%s", measurementType, vals[0], metric.Type.String())
+
+			p, err := client.NewPoint(measurementName, tags, fields, time.Unix(0, metric.Timestamp))
 			if err != nil {
 				return err
 			}
