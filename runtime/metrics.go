@@ -132,15 +132,15 @@ func (m *Metrics) logSinkJSON(filename string) MetricSinkFn {
 	}
 }
 
-func processTags(customtags []string) map[string]string {
-	m := make(map[string]string)
+func (m *Metrics) processTags(customtags []string) map[string]string {
+	mp := make(map[string]string, len(m.tags)+len(customtags))
 
 	for _, t := range customtags {
 		kv := strings.Split(t, "=")
 
-		m[kv[0]] = kv[1]
+		mp[kv[0]] = kv[1]
 	}
-	return m
+	return mp
 }
 
 func (m *Metrics) writeToInfluxDBSink(measurementType string) MetricSinkFn {
@@ -154,7 +154,7 @@ func (m *Metrics) writeToInfluxDBSink(measurementType string) MetricSinkFn {
 			var tags map[string]string
 			// check if we have custom metric tags
 			if len(vals) > 1 {
-				tags = processTags(vals[1:]) // ignore first, which is measurement name
+				tags = m.processTags(vals[1:]) // ignore first, which is measurement name
 
 				// copy global tags
 				for k, v := range m.tags {
