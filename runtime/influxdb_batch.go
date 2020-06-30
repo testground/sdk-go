@@ -7,6 +7,8 @@ import (
 	"github.com/avast/retry-go"
 	_ "github.com/influxdata/influxdb1-client"
 	client "github.com/influxdata/influxdb1-client/v2"
+
+	"github.com/testground/sdk-go"
 )
 
 type Batcher interface {
@@ -113,7 +115,9 @@ func (b *batcher) background() {
 				// we are currently sending, wait for the send to finish first.
 				if err := <-b.sendRes; err == nil {
 					b.pending = b.pending[len(b.sending):]
-					b.re.RecordMessage("influxdb: uploaded %d points", len(b.sending))
+					if sdk.Verbose {
+						b.re.RecordMessage("influxdb: uploaded %d points", len(b.sending))
+					}
 				} else {
 					b.re.RecordMessage("influxdb: failed to upload %d points; err: %s", len(b.sending), err)
 				}
@@ -126,7 +130,9 @@ func (b *batcher) background() {
 				go b.send()
 				err = <-b.sendRes
 				if err == nil {
-					b.re.RecordMessage("influxdb: uploaded %d points", len(b.sending))
+					if sdk.Verbose {
+						b.re.RecordMessage("influxdb: uploaded %d points", len(b.sending))
+					}
 				} else {
 					b.re.RecordMessage("influxdb: failed to upload %d points; err: %s", len(b.sending), err)
 				}
