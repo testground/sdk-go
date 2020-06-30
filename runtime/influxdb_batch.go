@@ -84,7 +84,9 @@ func (b *batcher) background() {
 		case err := <-b.sendRes:
 			if err == nil {
 				b.pending = b.pending[len(b.sending):]
-				b.re.RecordMessage("influxdb: uploaded %d points", len(b.sending))
+				if sdk.Verbose {
+					b.re.RecordMessage("influxdb: uploaded %d points", len(b.sending))
+				}
 			} else {
 				b.re.RecordMessage("influxdb: failed to upload %d points; err: %s", len(b.sending), err)
 			}
