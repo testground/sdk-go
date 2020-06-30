@@ -12,6 +12,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/testground/sdk-go"
 	"github.com/testground/sdk-go/runtime"
 )
 
@@ -149,7 +150,9 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 
 	_ = rd.Close()
 	<-ioDoneCh
-	runenv.RecordMessage("io closed")
+	if sdk.Verbose {
+		runenv.RecordMessage("io closed")
+	}
 }
 
 func maybeSetupHTTPListener(runenv *runtime.RunEnv) {
