@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -214,6 +215,20 @@ func (rp *RunParams) SizeArrayParam(name string) []uint64 {
 	}
 
 	return sizes
+}
+
+// PortNumber returns the port number assigned to the provided label, or falls
+// back to the default value if none is assigned.
+//
+// TODO: we're getting this directly from an environment variable. We may want
+//  to unpack in RunParams first.
+func (rp *RunParams) PortNumber(label string, def string) string {
+	v := strings.ToUpper(strings.TrimSpace(label)) + "_PORT"
+	port, ok := os.LookupEnv(v)
+	if !ok {
+		return def
+	}
+	return port
 }
 
 // JSONParam unmarshals a JSON parameter in an arbitrary interface.
