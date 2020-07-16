@@ -101,9 +101,14 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 	w := io.MultiWriter(errfile, os.Stderr)
 	os.Stderr = wr
 
-	ioDoneCh := make(chan struct{})
+	// handle the copying of stderr into run.err.
 	go func() {
-		defer close(ioDoneCh)
+		defer func() {
+			_ = rd.Close()
+			if sdk.Verbose {
+				runenv.RecordMessage("io closed")
+			}
+		}()
 
 		_, err := io.Copy(w, rd)
 		if err != nil && !strings.Contains(err.Error(), "file already closed") {
@@ -128,30 +133,36 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 		}
 	}()
 
-	switch f := fn.(type) {
-	case TestCaseFn:
-		err = f(runenv)
-	case InitializedTestCaseFn:
-		ic := new(InitContext)
-		ic.init(runenv)
-		defer ic.close()
-		err = f(runenv, ic)
-	default:
-		msg := fmt.Sprintf("unexpected function passed to Invoke*; expected types: TestCaseFn, InitializedTestCaseFn; was: %T", f)
-		panic(msg)
-	}
+	errCh := make(chan error)
+	go func() {
+		defer close(errCh)
+		defer HandlePanics()
 
-	switch err {
-	case nil:
-		runenv.RecordSuccess()
-	default:
-		runenv.RecordFailure(err)
-	}
+		switch f := fn.(type) {
+		case TestCaseFn:
+			errCh <- f(runenv)
+		case InitializedTestCaseFn:
+			ic := new(InitContext)
+			ic.init(runenv)
+			defer ic.close()
+			errCh <- f(runenv, ic)
+		default:
+			msg := fmt.Sprintf("unexpected function passed to Invoke*; expected types: TestCaseFn, InitializedTestCaseFn; was: %T", f)
+			panic(msg)
+		}
+	}()
 
-	_ = rd.Close()
-	<-ioDoneCh
-	if sdk.Verbose {
-		runenv.RecordMessage("io closed")
+	select {
+	case err := <-errCh:
+		switch err {
+		case nil:
+			runenv.RecordSuccess()
+		default:
+			runenv.RecordFailure(err)
+		}
+	case p := <-panicHandler:
+		// propagate the panic.
+		panic(p)
 	}
 }
 
