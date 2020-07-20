@@ -111,4 +111,8 @@ type Config struct {
 	// A zero value falls back to runenv.TestInstanceCount (i.e. all instances
 	// participating in the test run).
 	CallbackTarget int `json:"-"`
+
+	// WhitelistAll whitelists all traffic through the data plane (except for the
+	// control traffic).
+	WhitelistAll bool
 }
