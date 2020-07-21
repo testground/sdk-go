@@ -60,18 +60,21 @@ func TestUninitializedInvoke(t *testing.T) {
 		_ = os.Setenv(k, v)
 	}
 
+	await := func(ch chan struct{}) {
+		select {
+		case <-ch:
+		case <-time.After(1 * time.Second):
+			t.Fatal("test function not invoked")
+		}
+	}
+
 	// not using type alias.
 	ch := make(chan struct{})
 	Invoke(func(runenv *runtime.RunEnv) error {
 		close(ch)
 		return nil
 	})
-
-	select {
-	case <-ch:
-	case <-time.After(1 * time.Second):
-		t.Fatal("test function not invoked")
-	}
+	await(ch)
 
 	// using type alias.
 	ch = make(chan struct{})
@@ -79,10 +82,6 @@ func TestUninitializedInvoke(t *testing.T) {
 		close(ch)
 		return nil
 	}))
+	await(ch)
 
-	select {
-	case <-ch:
-	case <-time.After(1 * time.Second):
-		t.Fatal("test function not invoked")
-	}
 }
