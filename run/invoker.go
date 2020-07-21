@@ -29,7 +29,7 @@ const (
 // invoked. If we were unable to start the listener, this value will be "".
 var HTTPListenAddr string
 
-type TestCaseFn func(env *runtime.RunEnv) error
+type TestCaseFn = func(env *runtime.RunEnv) error
 
 // InitializedTestCaseFn allows users to indicate they want a basic
 // initialization routine to be run before yielding control to the test case
@@ -50,7 +50,7 @@ type TestCaseFn func(env *runtime.RunEnv) error
 // The injected InitContext is a bundle containing the result, and you can use
 // its objects in your test logic. In fact, you don't need to close them
 // (sync client, net client), as the SDK manages that for you.
-type InitializedTestCaseFn func(env *runtime.RunEnv, initCtx *InitContext) error
+type InitializedTestCaseFn = func(env *runtime.RunEnv, initCtx *InitContext) error
 
 // InvokeMap takes a map of test case names and their functions, and calls the
 // matched test case, or panics if the name is unrecognised.

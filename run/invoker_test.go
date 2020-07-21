@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/testground/sdk-go/runtime"
 	"github.com/testground/sdk-go/sync"
@@ -38,7 +39,7 @@ func TestInitializedInvoke(t *testing.T) {
 	}
 
 	env, cleanup := runtime.RandomTestRunEnv(t)
-	defer cleanup()
+	t.Cleanup(cleanup)
 
 	for k, v := range env.ToEnvVars() {
 		_ = os.Setenv(k, v)
@@ -49,4 +50,38 @@ func TestInitializedInvoke(t *testing.T) {
 	Invoke(test)
 	Invoke(test)
 	Invoke(test)
+}
+
+func TestUninitializedInvoke(t *testing.T) {
+	env, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
+
+	for k, v := range env.ToEnvVars() {
+		_ = os.Setenv(k, v)
+	}
+
+	await := func(ch chan struct{}) {
+		select {
+		case <-ch:
+		case <-time.After(1 * time.Second):
+			t.Fatal("test function not invoked")
+		}
+	}
+
+	// not using type alias.
+	ch := make(chan struct{})
+	Invoke(func(runenv *runtime.RunEnv) error {
+		close(ch)
+		return nil
+	})
+	await(ch)
+
+	// using type alias.
+	ch = make(chan struct{})
+	Invoke(TestCaseFn(func(runenv *runtime.RunEnv) error {
+		close(ch)
+		return nil
+	}))
+	await(ch)
+
 }
