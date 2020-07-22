@@ -77,9 +77,9 @@ type LinkRule struct {
 type RoutingPolicyType string
 
 const (
-	// WhitelistAll whitelists all traffic through the data plane (except for the
+	// AllowAll whitelists all traffic through the data plane (except for the
 	// control traffic).
-	WhitelistAll = RoutingPolicyType("whitelist_all")
+	AllowAll = RoutingPolicyType("allow_all")
 )
 
 // NetworkConfig specifies how a node's network should be configured.
