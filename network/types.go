@@ -73,6 +73,15 @@ type LinkRule struct {
 	Subnet net.IPNet
 }
 
+// RoutingPolicyType defines a certain routing policy to a network.
+type RoutingPolicyType string
+
+const (
+	// WhitelistAll whitelists all traffic through the data plane (except for the
+	// control traffic).
+	WhitelistAll = RoutingPolicyType("whitelist_all")
+)
+
 // NetworkConfig specifies how a node's network should be configured.
 type Config struct {
 	// Network is the name of the network to configure
@@ -112,7 +121,6 @@ type Config struct {
 	// participating in the test run).
 	CallbackTarget int `json:"-"`
 
-	// WhitelistAll whitelists all traffic through the data plane (except for the
-	// control traffic).
-	WhitelistAll bool
+	// RoutingPolicy defines the data routing policy of a certain network.
+	RoutingPolicy RoutingPolicyType
 }
