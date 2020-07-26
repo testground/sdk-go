@@ -77,9 +77,8 @@ type LinkRule struct {
 type RoutingPolicyType string
 
 const (
-	// AllowAll whitelists all traffic through the data plane (except for the
-	// control traffic).
 	AllowAll = RoutingPolicyType("allow_all")
+	DenyAll  = RoutingPolicyType("deny_all")
 )
 
 // NetworkConfig specifies how a node's network should be configured.
@@ -121,6 +120,8 @@ type Config struct {
 	// participating in the test run).
 	CallbackTarget int `json:"-"`
 
-	// RoutingPolicy defines the data routing policy of a certain network.
+	// RoutingPolicy defines the data routing policy of a certain node. This affects
+	// external networks other than the network 'Default', e.g., external Internet
+	// access.
 	RoutingPolicy RoutingPolicyType
 }
