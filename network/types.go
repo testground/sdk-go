@@ -73,6 +73,14 @@ type LinkRule struct {
 	Subnet net.IPNet
 }
 
+// RoutingPolicyType defines a certain routing policy to a network.
+type RoutingPolicyType string
+
+const (
+	AllowAll = RoutingPolicyType("allow_all")
+	DenyAll  = RoutingPolicyType("deny_all")
+)
+
 // NetworkConfig specifies how a node's network should be configured.
 type Config struct {
 	// Network is the name of the network to configure
@@ -111,4 +119,9 @@ type Config struct {
 	// A zero value falls back to runenv.TestInstanceCount (i.e. all instances
 	// participating in the test run).
 	CallbackTarget int `json:"-"`
+
+	// RoutingPolicy defines the data routing policy of a certain node. This affects
+	// external networks other than the network 'Default', e.g., external Internet
+	// access.
+	RoutingPolicy RoutingPolicyType
 }
