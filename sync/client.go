@@ -159,6 +159,17 @@ func (c *DefaultClient) Close() error {
 	return c.rclient.Close()
 }
 
+// RedisClient returns the Redis client that underpins sync.DefaultClient.
+//
+// USE WITH CAUTION.
+//
+// Redis is a shared-memory environment, and use of RedisClient() comes with all the
+// usual multithreding caveats.  Use of this method is discouraged where high-level
+// primitives in the sync package suffice to accomplish the task at hand.
+func (c *DefaultClient) RedisClient() *redis.Client {
+	return c.rclient
+}
+
 // newSubscription is an ancillary type used when creating a new Subscription.
 type newSubscription struct {
 	sub      *Subscription
