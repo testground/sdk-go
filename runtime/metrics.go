@@ -132,15 +132,24 @@ func (m *Metrics) logSinkJSON(filename string) MetricSinkFn {
 	}
 }
 
-func (m *Metrics) processTags(customtags []string) map[string]string {
-	mp := make(map[string]string, len(m.tags)+len(customtags))
+func (m *Metrics) computeTags(name string, customtags []string) map[string]string {
+	ret := make(map[string]string, len(m.tags)+len(customtags))
 
+	// copy global tags.
+	for k, v := range m.tags {
+		ret[k] = v
+	}
+
+	// process custom tags.
 	for _, t := range customtags {
 		kv := strings.Split(t, "=")
-
-		mp[kv[0]] = kv[1]
+		if len(kv) != 2 {
+			m.re.SLogger().Warnf("skipping invalid tag for metric; name: %s, tag: %s", name, t)
+			continue
+		}
+		ret[kv[0]] = kv[1]
 	}
-	return mp
+	return ret
 }
 
 func (m *Metrics) writeToInfluxDBSink(measurementType string) MetricSinkFn {
@@ -149,18 +158,13 @@ func (m *Metrics) writeToInfluxDBSink(measurementType string) MetricSinkFn {
 		for k, v := range metric.Measures {
 			fields[k] = v
 
-			vals := strings.Split(metric.Name, ",")
-
 			var tags map[string]string
-			// check if we have custom metric tags
+			vals := strings.Split(metric.Name, ",")
 			if len(vals) > 1 {
-				tags = m.processTags(vals[1:]) // ignore first, which is measurement name
-
-				// copy global tags
-				for k, v := range m.tags {
-					tags[k] = v
-				}
+				// we have custom metric tags; inject global tags + provided tags.
+				tags = m.computeTags(vals[0], vals[1:])
 			} else {
+				// we have no custom metric tags; inject global tags only.
 				tags = m.tags
 			}
 

@@ -140,38 +140,118 @@ func (m *MetricsApi) SetFrequency(freq time.Duration) {
 	m.freqChangeCh <- freq
 }
 
+// RecordPoint records a float64 point under the provided metric name + tags.
+//
+// The format of the metric name is a comma-separated list, where the first
+// element is the metric name, and optionally, an unbounded list of
+// key-value pairs. Example:
+//
+//   requests_received,tag1=value1,tag2=value2,tag3=value3
 func (m *MetricsApi) RecordPoint(name string, value float64) {
 	m.broadcast(name, Point(value))
 }
 
+// Counter creates a measurement of counter type. The returned type is an
+// alias of go-metrics' Counter type. Refer to godocs there for details.
+//
+// The format of the metric name is a comma-separated list, where the first
+// element is the metric name, and optionally, an unbounded list of
+// key-value pairs. Example:
+//
+//   requests_received,tag1=value1,tag2=value2,tag3=value3
 func (m *MetricsApi) Counter(name string) Counter {
 	return m.reg.GetOrRegister(name, newResettingCounter()).(metrics.Counter)
 }
 
+// EWMA creates a measurement of exponential-weighted moving average type.
+// The returned type is an alias of go-metrics' EWMA type. Refer to godocs
+// there for details.
+//
+// The format of the metric name is a comma-separated list, where the first
+// element is the metric name, and optionally, an unbounded list of
+// key-value pairs. Example:
+//
+//   requests_received,tag1=value1,tag2=value2,tag3=value3
 func (m *MetricsApi) EWMA(name string, alpha float64) EWMA {
 	return m.reg.GetOrRegister(name, metrics.NewEWMA(alpha)).(metrics.EWMA)
 }
 
+// Gauge creates a measurement of gauge type (float64).
+// The returned type is an alias of go-metrics' GaugeFloat64 type. Refer to
+// godocs there for details.
+//
+// The format of the metric name is a comma-separated list, where the first
+// element is the metric name, and optionally, an unbounded list of
+// key-value pairs. Example:
+//
+//   requests_received,tag1=value1,tag2=value2,tag3=value3
 func (m *MetricsApi) Gauge(name string) Gauge {
 	return m.reg.GetOrRegister(name, metrics.NewGaugeFloat64()).(metrics.GaugeFloat64)
 }
 
+// GaugeF creates a measurement of functional gauge type (float64).
+// The returned type is an alias of go-metrics' GaugeFloat64 type. Refer to
+// godocs there for details.
+//
+// The format of the metric name is a comma-separated list, where the first
+// element is the metric name, and optionally, an unbounded list of
+// key-value pairs. Example:
+//
+//   requests_received,tag1=value1,tag2=value2,tag3=value3
 func (m *MetricsApi) GaugeF(name string, f func() float64) Gauge {
 	return m.reg.GetOrRegister(name, metrics.NewFunctionalGaugeFloat64(f)).(metrics.GaugeFloat64)
 }
 
+// Histogram creates a measurement of histogram type.
+// The returned type is an alias of go-metrics' Histogram type. Refer to
+// godocs there for details.
+//
+// The format of the metric name is a comma-separated list, where the first
+// element is the metric name, and optionally, an unbounded list of
+// key-value pairs. Example:
+//
+//   requests_received,tag1=value1,tag2=value2,tag3=value3
 func (m *MetricsApi) Histogram(name string, s Sample) Histogram {
 	return m.reg.GetOrRegister(name, metrics.NewHistogram(s)).(metrics.Histogram)
 }
 
+// Meter creates a measurement of meter type.
+// The returned type is an alias of go-metrics' Meter type. Refer to
+// godocs there for details.
+//
+// The format of the metric name is a comma-separated list, where the first
+// element is the metric name, and optionally, an unbounded list of
+// key-value pairs. Example:
+//
+//   requests_received,tag1=value1,tag2=value2,tag3=value3
 func (m *MetricsApi) Meter(name string) Meter {
 	return m.reg.GetOrRegister(name, metrics.NewMeter()).(metrics.Meter)
 }
 
+// Timer creates a measurement of timer type.
+// The returned type is an alias of go-metrics' Timer type. Refer to
+// godocs there for details.
+//
+// The format of the metric name is a comma-separated list, where the first
+// element is the metric name, and optionally, an unbounded list of
+// key-value pairs. Example:
+//
+//   requests_received,tag1=value1,tag2=value2,tag3=value3
 func (m *MetricsApi) Timer(name string) Timer {
 	return m.reg.GetOrRegister(name, metrics.NewTimer()).(metrics.Timer)
 }
 
+// ResettingHistogram creates a measurement of histogram type, which cyclically
+// resets to zero when its values are harvested.
+//
+// The returned type is an alias of go-metrics' Histogram type. Refer to
+// godocs there for details.
+//
+// The format of the metric name is a comma-separated list, where the first
+// element is the metric name, and optionally, an unbounded list of
+// key-value pairs. Example:
+//
+//   requests_received,tag1=value1,tag2=value2,tag3=value3
 func (m *MetricsApi) ResettingHistogram(name string) Histogram {
 	return m.reg.GetOrRegister(name, newResettingHistogram()).(Histogram)
 }
