@@ -300,3 +300,30 @@ func TestFrequencyChange(t *testing.T) {
 	require.Greater(len(tc.batchPoints), 5)
 	tc.RUnlock()
 }
+
+func TestInvalidMetricName(t *testing.T) {
+	InfluxBatching = true
+	tc := &testClient{}
+	TestInfluxDBClient = tc
+
+	re, cleanup := RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
+
+	re.R().RecordPoint("foo,i_am_an_invalid_tag_because_i_have_no_value", 1234)
+	re.R().RecordPoint("foo,i_am_an_invalid_tag_because_i_have_no_value,another,one_more", 1234)
+	re.R().RecordPoint("foo,", 1234)
+
+	require := require.New(t)
+
+	tc.RLock()
+	require.Empty(tc.batchPoints)
+	tc.RUnlock()
+
+	_ = re.Close()
+
+	tc.RLock()
+	require.NotEmpty(tc.batchPoints)
+	require.Len(tc.batchPoints, 1)
+	require.Len(tc.batchPoints[0].Points(), 3)
+	tc.RUnlock()
+}
