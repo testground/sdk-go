@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"runtime/debug"
 
@@ -120,6 +121,10 @@ func (re *RunEnv) RecordSuccess() {
 	}
 	re.logger.Info("", zap.Object("event", evt))
 	re.metrics.recordEvent(&evt)
+
+	if re.synccl != nil {
+		_ = re.synccl.SignalEvent(context.Background(), &Notification{GroupID: re.RunParams.TestGroupID, Scope: "test-case", EventType: "outcome-ok"})
+	}
 }
 
 // RecordFailure records that the calling instance failed with the supplied

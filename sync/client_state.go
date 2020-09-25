@@ -78,7 +78,7 @@ func (c *DefaultClient) SignalEntry(ctx context.Context, state State) (after int
 	return seq, err
 }
 
-func (c *Client) SignalEvent(ctx context.Context, event interface{}) (err error) {
+func (c *DefaultClient) SignalEvent(ctx context.Context, event interface{}) (err error) {
 	rp := c.extractor(ctx)
 	if rp == nil {
 		return ErrNoRunParameters

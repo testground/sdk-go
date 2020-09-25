@@ -32,6 +32,7 @@ func MonitorEvents(rp *runtime.RunParams, lastid string) (retlastid string, nots
 	client := redis.NewClient(&opts)
 
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
+	fmt.Println(key)
 
 	args := new(redis.XReadArgs)
 	args.Streams = []string{key, lastid}
@@ -44,7 +45,9 @@ func MonitorEvents(rp *runtime.RunParams, lastid string) (retlastid string, nots
 			return lastid, nil
 		}
 
-		panic(err)
+		fmt.Println(err.Error())
+		return
+		//panic(err)
 	}
 
 	for _, xr := range streams {

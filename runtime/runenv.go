@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"os"
 	gosync "sync"
 	"time"
@@ -32,6 +33,7 @@ type RunEnv struct {
 
 	logger  *zap.Logger
 	metrics *Metrics
+	synccl  SyncClient
 
 	wg        gosync.WaitGroup
 	closeCh   chan struct{}
@@ -68,6 +70,14 @@ func NewRunEnv(params RunParams) *RunEnv {
 	re.metrics = newMetrics(re)
 
 	return re
+}
+
+type SyncClient interface {
+	SignalEvent(context.Context, interface{}) error
+}
+
+func (re *RunEnv) AttachSyncClient(synccl SyncClient) {
+	re.synccl = synccl
 }
 
 // R returns a metrics object for results.
