@@ -24,43 +24,7 @@ var DefaultRedisOpts = redis.Options{
 	MaxConnAge:         2 * time.Minute,
 }
 
-//func MonitorBarriers(rp *runtime.RunParams) {
-//host := "testground-infra-redis-headless"
-//port := 6379
-//opts := DefaultRedisOpts
-//opts.Addr = fmt.Sprintf("%s:%d", host, port)
-//client := redis.NewClient(&opts)
-
-//key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
-
-//members, err := client.SMembers(key).Result()
-//if err != nil {
-//panic(err)
-//}
-
-//spew.Dump(members)
-
-////vals, err := client.MGet(key).Result()
-////if err != nil {
-////panic(err)
-////}
-
-////v := vals[0]
-
-////if v == nil {
-////return
-////}
-
-////curr, err := strconv.ParseInt(v.(string), 10, 64)
-////if err != nil {
-////panic(err)
-////}
-
-////fmt.Println(curr)
-////spew.Dump(curr)
-//}
-
-func MonitorBarriers(rp *runtime.RunParams, lastid string) (retlastid string, nots []*runtime.Notification) {
+func MonitorEvents(rp *runtime.RunParams, lastid string) (retlastid string, nots []*runtime.Notification) {
 	host := "testground-infra-redis-headless"
 	port := 6379
 	opts := DefaultRedisOpts
