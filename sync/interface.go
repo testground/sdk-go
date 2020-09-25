@@ -25,4 +25,6 @@ type Client interface {
 	MustPublishAndWait(ctx context.Context, topic *Topic, payload interface{}, state State, target int) (seq int64)
 	MustPublishSubscribe(ctx context.Context, topic *Topic, payload interface{}, ch interface{}) (seq int64, sub *Subscription)
 	MustSignalAndWait(ctx context.Context, state State, target int) (seq int64)
+
+	SignalEvent(context.Context, interface{}) error
 }
