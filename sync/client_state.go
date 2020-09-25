@@ -79,17 +79,20 @@ func (c *DefaultClient) SignalEntry(ctx context.Context, state State) (after int
 }
 
 func (c *DefaultClient) SignalEvent(ctx context.Context, event interface{}) (err error) {
+	c.log.Debugw("inside signal entry")
 	rp := c.extractor(ctx)
 	if rp == nil {
 		return ErrNoRunParameters
 	}
 
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
+	c.log.Debugw("signal entry key", "key", key)
 
 	ev, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
+	c.log.Debugw("signal event marshaled", "key", key)
 
 	args := &redis.XAddArgs{
 		Stream: key,
@@ -101,6 +104,7 @@ func (c *DefaultClient) SignalEvent(ctx context.Context, event interface{}) (err
 	if err != nil {
 		return err
 	}
+	c.log.Debugw("signal event xadded", "key", key)
 
 	return nil
 }
