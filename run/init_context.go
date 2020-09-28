@@ -59,6 +59,8 @@ func (ic *InitContext) init(runenv *runtime.RunEnv) {
 		runenv:     runenv,
 	}
 
+	runenv.AttachSyncClient(client)
+
 	runenv.RecordMessage("claimed sequence numbers; global=%d, group(%s)=%d", ic.GlobalSeq, runenv.TestGroupID, ic.GroupSeq)
 }
 
