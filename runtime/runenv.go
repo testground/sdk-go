@@ -31,9 +31,9 @@ var (
 type RunEnv struct {
 	RunParams
 
-	logger  *zap.Logger
-	metrics *Metrics
-	synccl  SyncClient
+	logger     *zap.Logger
+	metrics    *Metrics
+	syncClient SyncClient
 
 	wg        gosync.WaitGroup
 	closeCh   chan struct{}
@@ -76,8 +76,8 @@ type SyncClient interface {
 	SignalEvent(context.Context, interface{}) error
 }
 
-func (re *RunEnv) AttachSyncClient(synccl SyncClient) {
-	re.synccl = synccl
+func (re *RunEnv) AttachSyncClient(sc SyncClient) {
+	re.syncClient = sc
 }
 
 // R returns a metrics object for results.

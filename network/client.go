@@ -18,32 +18,29 @@ const (
 )
 
 type Client struct {
-	runenv *runtime.RunEnv
-	client sync.Client
+	runenv     *runtime.RunEnv
+	syncClient sync.Client
 }
 
 // NewClient returns a new network client. Use this client to request network
 // changes, such as setting latencies, jitter, packet loss, connectedness, etc.
-func NewClient(client sync.Client, runenv *runtime.RunEnv) *Client {
+func NewClient(syncClient sync.Client, runenv *runtime.RunEnv) *Client {
 	return &Client{
-		runenv: runenv,
-		client: client,
+		runenv:     runenv,
+		syncClient: syncClient,
 	}
 }
 
 // WaitNetworkInitialized waits for the sidecar to initialize the network, if
 // the sidecar is enabled. If not, it returns immediately.
 func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
-	synccl, ok := c.client.(*sync.DefaultClient)
-	if ok {
-		err := synccl.SignalEvent(ctx, &runtime.Notification{GroupID: c.runenv.TestGroupID, Scope: "stage", EventType: "entry", StageName: "network-initialized"})
-		if err != nil {
-			return err
-		}
+	err := c.syncClient.SignalEvent(ctx, &runtime.Notification{GroupID: c.runenv.TestGroupID, Scope: "stage", EventType: "entry", StageName: "network-initialized"})
+	if err != nil {
+		return err
 	}
 
 	if c.runenv.TestSidecar {
-		err := <-c.client.MustBarrier(ctx, "network-initialized", c.runenv.TestInstanceCount).C
+		err := <-c.syncClient.MustBarrier(ctx, "network-initialized", c.runenv.TestInstanceCount).C
 		if err != nil {
 			c.runenv.RecordMessage(InitialisationFailed)
 			return fmt.Errorf("failed to initialize network: %w", err)
@@ -51,11 +48,9 @@ func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
 	}
 	c.runenv.RecordMessage(InitialisationSuccessful)
 
-	if ok {
-		err := synccl.SignalEvent(ctx, &runtime.Notification{GroupID: c.runenv.TestGroupID, Scope: "stage", EventType: "exit", StageName: "network-initialized"})
-		if err != nil {
-			return err
-		}
+	err = c.syncClient.SignalEvent(ctx, &runtime.Notification{GroupID: c.runenv.TestGroupID, Scope: "stage", EventType: "exit", StageName: "network-initialized"})
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -97,7 +92,7 @@ func (c *Client) ConfigureNetwork(ctx context.Context, config *Config) (err erro
 		target = c.runenv.TestInstanceCount
 	}
 
-	_, err = c.client.PublishAndWait(ctx, topic, config, config.CallbackState, target)
+	_, err = c.syncClient.PublishAndWait(ctx, topic, config, config.CallbackState, target)
 	if err != nil {
 		err = fmt.Errorf("failed to configure network: %w", err)
 	}
