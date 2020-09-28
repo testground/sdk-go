@@ -1,13 +1,20 @@
-package peek
+package notification
 
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v7"
 	"github.com/testground/sdk-go/runtime"
 	"github.com/testground/sdk-go/sync"
+)
+
+const (
+	EnvRedisHost = "REDIS_HOST"
+	EnvRedisPort = "REDIS_PORT"
 )
 
 var DefaultRedisOpts = redis.Options{
@@ -24,27 +31,46 @@ var DefaultRedisOpts = redis.Options{
 	MaxConnAge:         2 * time.Minute,
 }
 
-func MonitorEvents(rp *runtime.RunParams, lastid string) (retlastid string, nots []*runtime.Notification) {
-	host := "testground-infra-redis-headless"
-	port := 6379
+var client *redis.Client
+
+func init() {
+	var (
+		port = 6379
+		host = os.Getenv(EnvRedisHost)
+	)
+
+	if portStr := os.Getenv(EnvRedisPort); portStr != "" {
+		var err error
+		port, err = strconv.Atoi(portStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	opts := DefaultRedisOpts
 	opts.Addr = fmt.Sprintf("%s:%d", host, port)
-	client := redis.NewClient(&opts)
+
+	client = redis.NewClient(&opts)
+}
+
+func Fetch(rp *runtime.RunParams, lastId string) ([]*runtime.Notification, string, error) {
+	var notifications []*runtime.Notification
+	var newId string
 
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
 
 	args := new(redis.XReadArgs)
-	args.Streams = []string{key, lastid}
+	args.Streams = []string{key, lastId}
 	args.Block = 1 * time.Second
 	args.Count = 10000
 
 	streams, err := client.XRead(args).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return lastid, nil
+			return nil, lastId, nil
 		}
 
-		panic(err)
+		return nil, "", err
 	}
 
 	for _, xr := range streams {
@@ -57,10 +83,11 @@ func MonitorEvents(rp *runtime.RunParams, lastid string) (retlastid string, nots
 				panic(err)
 			}
 
-			nots = append(nots, notification)
+			notifications = append(notifications, notification)
 
-			retlastid = msg.ID
+			newId = msg.ID
 		}
 	}
-	return
+
+	return notifications, newId, nil
 }

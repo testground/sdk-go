@@ -151,8 +151,7 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 		case InitializedTestCaseFn:
 			ic := new(InitContext)
 			ic.init(runenv)
-			//defer ic.close()
-			closer = ic.close
+			closer = ic.close // we want to close the InitContext after having calld RecordSuccess or RecordFailure
 			errCh <- f(runenv, ic)
 		default:
 			msg := fmt.Sprintf("unexpected function passed to Invoke*; expected types: TestCaseFn, InitializedTestCaseFn; was: %T", f)

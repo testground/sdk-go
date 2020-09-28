@@ -122,8 +122,8 @@ func (re *RunEnv) RecordSuccess() {
 	re.logger.Info("", zap.Object("event", evt))
 	re.metrics.recordEvent(&evt)
 
-	if re.syncClient != nil {
-		_ = re.syncClient.SignalEvent(context.Background(), &Notification{GroupID: re.RunParams.TestGroupID, Scope: "test-case", EventType: "outcome-ok"})
+	if re.signalEventer != nil {
+		_ = re.signalEventer.SignalEvent(context.Background(), &Notification{GroupID: re.RunParams.TestGroupID, Scope: "test-case", EventType: "outcome-ok"})
 	}
 }
 
