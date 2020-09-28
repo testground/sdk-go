@@ -119,6 +119,10 @@ func (i *inmemClient) SignalEntry(_ context.Context, state State) (after int64, 
 	return v, nil
 }
 
+func (i *inmemClient) SignalEvent(_ context.Context, event interface{}) error {
+	return nil
+}
+
 func (i *inmemClient) Close() error {
 	return nil
 }
