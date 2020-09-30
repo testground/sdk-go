@@ -123,7 +123,7 @@ func (re *RunEnv) RecordSuccess() {
 	re.metrics.recordEvent(&evt)
 
 	if re.signalEventer != nil {
-		_ = re.signalEventer.SignalEvent(context.Background(), &Notification{GroupID: re.RunParams.TestGroupID, Scope: "test-case", EventType: "outcome-ok"})
+		_ = re.signalEventer.SignalEvent(context.Background(), NewOutcomeOKNotification(re.RunParams.TestGroupID))
 	}
 }
 

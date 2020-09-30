@@ -54,9 +54,6 @@ func init() {
 }
 
 func Fetch(rp *runtime.RunParams, lastId string) ([]*runtime.Notification, string, error) {
-	var notifications []*runtime.Notification
-	var newId string
-
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
 
 	args := new(redis.XReadArgs)
@@ -72,6 +69,9 @@ func Fetch(rp *runtime.RunParams, lastId string) ([]*runtime.Notification, strin
 
 		return nil, "", err
 	}
+
+	var newId string
+	var notifications []*runtime.Notification
 
 	for _, xr := range streams {
 		for _, msg := range xr.Messages {
