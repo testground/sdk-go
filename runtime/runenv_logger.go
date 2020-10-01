@@ -44,7 +44,7 @@ func (re *RunEnv) initLogger() {
 
 	enc := zap.NewProductionEncoderConfig()
 	enc.LevelKey, enc.NameKey = "", ""
-	enc.EncodeTime = zapcore.EpochNanosTimeEncoder
+	enc.EncodeTime = zapcore.RFC3339TimeEncoder
 	cfg.EncoderConfig = enc
 
 	var err error
