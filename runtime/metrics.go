@@ -180,7 +180,7 @@ func (m *Metrics) writeToInfluxDBSink(measurementType string) MetricSinkFn {
 	}
 }
 
-func (m *Metrics) recordEvent(evt *Event) {
+func (m *Metrics) recordEvent(t Typer) {
 	if m.influxdb == nil {
 		return
 	}
@@ -191,16 +191,17 @@ func (m *Metrics) recordEvent(evt *Event) {
 		tags[k] = v
 	}
 
-	if evt.Outcome != "" {
-		tags["outcome"] = string(evt.Outcome)
-	}
+	//if evt.Outcome != "" {
+	//tags["outcome"] = string(evt.Outcome)
+	//}
 
-	fields := map[string]interface{}{
-		"error": evt.Error,
-	}
+	//fields := map[string]interface{}{
+	//"error": evt.Error,
+	//}
 
-	measurement := fmt.Sprintf("events.%s", string(evt.Type))
-	p, err := client.NewPoint(measurement, tags, fields)
+	measurement := fmt.Sprintf("events.%s", t.Type())
+	//p, err := client.NewPoint(measurement, tags, fields)
+	p, err := client.NewPoint(measurement, tags, nil)
 	if err != nil {
 		m.re.RecordMessage("failed to create InfluxDB point: %s", err)
 	}
