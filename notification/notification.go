@@ -53,41 +53,43 @@ func init() {
 	client = redis.NewClient(&opts)
 }
 
-func Fetch(rp *runtime.RunParams, lastId string) ([]*runtime.Event, string, error) {
+func FetchAllEvents(rp *runtime.RunParams) ([]*runtime.Event, error) {
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
 
-	args := new(redis.XReadArgs)
-	args.Streams = []string{key, lastId}
-	args.Block = 1 * time.Second
-	args.Count = 10000
-
-	streams, err := client.XRead(args).Result()
-	if err != nil {
-		if err == redis.Nil {
-			return nil, lastId, nil
-		}
-
-		return nil, "", err
-	}
-
-	var newId string
 	var events []*runtime.Event
 
-	for _, xr := range streams {
-		for _, msg := range xr.Messages {
-			payload := msg.Values[sync.RedisPayloadKey].(string)
+	id := "0"
+	for {
+		args := &redis.XReadArgs{}
+		args.Streams = []string{key, id}
+		args.Block = 1 * time.Second
+		args.Count = 10000
 
-			ev := &runtime.Event{}
-			err := json.Unmarshal([]byte(payload), ev)
-			if err != nil {
-				panic(err)
+		streams, err := client.XRead(args).Result()
+		if err != nil {
+			if err == redis.Nil {
+				break
 			}
 
-			events = append(events, ev)
+			return nil, err
+		}
 
-			newId = msg.ID
+		for _, xr := range streams {
+			for _, msg := range xr.Messages {
+				payload := msg.Values[sync.RedisPayloadKey].(string)
+
+				ev := &runtime.Event{}
+				err := json.Unmarshal([]byte(payload), ev)
+				if err != nil {
+					panic(err)
+				}
+
+				events = append(events, ev)
+
+				id = msg.ID
+			}
 		}
 	}
 
-	return events, newId, nil
+	return events, nil
 }

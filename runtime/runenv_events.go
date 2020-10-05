@@ -38,6 +38,27 @@ type Event struct {
 	*StageEndEvent
 }
 
+func (e *Event) Type() string {
+	switch {
+	case e.StartEvent != nil:
+		return e.StartEvent.Type()
+	case e.MessageEvent != nil:
+		return e.MessageEvent.Type()
+	case e.SuccessEvent != nil:
+		return e.SuccessEvent.Type()
+	case e.FailureEvent != nil:
+		return e.FailureEvent.Type()
+	case e.CrashEvent != nil:
+		return e.CrashEvent.Type()
+	case e.StageStartEvent != nil:
+		return e.StageStartEvent.Type()
+	case e.StageEndEvent != nil:
+		return e.StageEndEvent.Type()
+	default:
+		panic("no such event")
+	}
+}
+
 type StartEvent struct {
 	Runenv *RunParams `json:"runenv"`
 }
@@ -141,29 +162,46 @@ func (s StageEndEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 	return nil
 }
 
-//func (e Event) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-//oe.AddString("type", string(e.Type))
+func (e Event) MarshalLogObject(oe zapcore.ObjectEncoder) error {
+	switch {
+	case e.StartEvent != nil:
+		return e.StartEvent.MarshalLogObject(oe)
+	case e.MessageEvent != nil:
+		return e.MessageEvent.MarshalLogObject(oe)
+	case e.SuccessEvent != nil:
+		return e.SuccessEvent.MarshalLogObject(oe)
+	case e.FailureEvent != nil:
+		return e.FailureEvent.MarshalLogObject(oe)
+	case e.CrashEvent != nil:
+		return e.CrashEvent.MarshalLogObject(oe)
+	case e.StageStartEvent != nil:
+		return e.StageStartEvent.MarshalLogObject(oe)
+	case e.StageEndEvent != nil:
+		return e.StageEndEvent.MarshalLogObject(oe)
+	default:
+		panic("no such event")
+	}
 
-//if e.Outcome != "" {
-//oe.AddString("outcome", string(e.Outcome))
-//}
-//if e.Error != "" {
-//oe.AddString("error", e.Error)
-//}
-//if e.Stacktrace != "" {
-//oe.AddString("stacktrace", e.Stacktrace)
-//}
-//if e.Message != "" {
-//oe.AddString("message", e.Message)
-//}
-//if e.Runenv != nil {
-//if err := oe.AddObject("runenv", e.Runenv); err != nil {
-//return err
-//}
-//}
+	//oe.AddString("type", string(e.Type))
 
-//return nil
-//}
+	//if e.Outcome != "" {
+	//oe.AddString("outcome", string(e.Outcome))
+	//}
+	//if e.Error != "" {
+	//oe.AddString("error", e.Error)
+	//}
+	//if e.Stacktrace != "" {
+	//oe.AddString("stacktrace", e.Stacktrace)
+	//}
+	//if e.Message != "" {
+	//oe.AddString("message", e.Message)
+	//}
+	//if e.Runenv != nil {
+	//if err := oe.AddObject("runenv", e.Runenv); err != nil {
+	//return err
+	//}
+	//}
+}
 
 func (rp *RunParams) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 	oe.AddString("plan", rp.TestPlan)
@@ -221,34 +259,40 @@ func (re *RunEnv) RecordStart() {
 
 // RecordSuccess records that the calling instance succeeded.
 func (re *RunEnv) RecordSuccess() {
-	evt := SuccessEvent{
-		TestGroupID: re.RunParams.TestGroupID,
-	}
-	re.logger.Info("", zap.Object("event", evt))
-	re.metrics.recordEvent(&evt)
+	e := &Event{SuccessEvent: &SuccessEvent{TestGroupID: re.RunParams.TestGroupID}}
+	re.logger.Info("", zap.Object("event", e))
+	re.metrics.recordEvent(e)
 
 	if re.signalEventer != nil {
-		_ = re.signalEventer.SignalEvent(context.Background(), evt)
+		_ = re.signalEventer.SignalEvent(context.Background(), e)
 	}
 }
 
 // RecordFailure records that the calling instance failed with the supplied
 // error.
 func (re *RunEnv) RecordFailure(err error) {
-	evt := FailureEvent{
+	e := &Event{FailureEvent: &FailureEvent{
 		Error: err.Error(),
+	}}
+	re.logger.Info("", zap.Object("event", e))
+	re.metrics.recordEvent(e)
+
+	if re.signalEventer != nil {
+		_ = re.signalEventer.SignalEvent(context.Background(), e)
 	}
-	re.logger.Info("", zap.Object("event", evt))
-	re.metrics.recordEvent(&evt)
 }
 
 // RecordCrash records that the calling instance crashed/panicked with the
 // supplied error.
 func (re *RunEnv) RecordCrash(err interface{}) {
-	evt := CrashEvent{
+	e := &Event{CrashEvent: &CrashEvent{
 		Error:      fmt.Sprintf("%s", err),
 		Stacktrace: string(debug.Stack()),
+	}}
+	re.logger.Error("", zap.Object("event", e))
+	re.metrics.recordEvent(e)
+
+	if re.signalEventer != nil {
+		_ = re.signalEventer.SignalEvent(context.Background(), e)
 	}
-	re.logger.Error("", zap.Object("event", evt))
-	re.metrics.recordEvent(&evt)
 }

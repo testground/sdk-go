@@ -34,10 +34,11 @@ func NewClient(syncClient sync.Client, runenv *runtime.RunEnv) *Client {
 // WaitNetworkInitialized waits for the sidecar to initialize the network, if
 // the sidecar is enabled. If not, it returns immediately.
 func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
-	if err := c.syncClient.SignalEvent(ctx, runtime.StageStartEvent{
+	se := &runtime.Event{StageStartEvent: &runtime.StageStartEvent{
 		Name:        "network-initialized",
 		TestGroupID: c.runenv.TestGroupID,
-	}); err != nil {
+	}}
+	if err := c.syncClient.SignalEvent(ctx, se); err != nil {
 		return err
 	}
 
@@ -50,10 +51,11 @@ func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
 	}
 	c.runenv.RecordMessage(InitialisationSuccessful)
 
-	if err := c.syncClient.SignalEvent(ctx, runtime.StageEndEvent{
+	ee := &runtime.Event{StageEndEvent: &runtime.StageEndEvent{
 		Name:        "network-initialized",
 		TestGroupID: c.runenv.TestGroupID,
-	}); err != nil {
+	}}
+	if err := c.syncClient.SignalEvent(ctx, ee); err != nil {
 		return err
 	}
 
