@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -33,6 +34,10 @@ func NewWatchClient(ctx context.Context, log *zap.SugaredLogger) (*WatchClient, 
 }
 
 func (w *WatchClient) FetchAllEvents(rp *runtime.RunParams) ([]*runtime.Event, error) {
+	if w == nil {
+		return nil, errors.New("watch client not initialised, due to lack of redis")
+	}
+
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
 
 	var events []*runtime.Event
@@ -80,6 +85,10 @@ func (w *WatchClient) FetchAllEvents(rp *runtime.RunParams) ([]*runtime.Event, e
 }
 
 func (w *WatchClient) SubscribeEvents(ctx context.Context, rp *runtime.RunParams) (chan *runtime.Event, error) {
+	if w == nil {
+		return nil, errors.New("watch client not initialised, due to lack of redis")
+	}
+
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
 
 	events := make(chan *runtime.Event)
