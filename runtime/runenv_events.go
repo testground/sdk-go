@@ -88,6 +88,7 @@ func (FailureEvent) Type() string {
 }
 
 func (f FailureEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
+	oe.AddString("group", f.TestGroupID)
 	oe.AddString("error", f.Error)
 	return nil
 }
@@ -103,6 +104,7 @@ func (CrashEvent) Type() string {
 }
 
 func (c CrashEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
+	oe.AddString("group", c.TestGroupID)
 	oe.AddString("error", c.Error)
 	oe.AddString("stacktrace", c.Stacktrace)
 	return nil

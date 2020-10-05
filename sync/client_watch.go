@@ -11,6 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// WatchClient is used by the Testground daemon to monitor all emitted events by the testplans,
+// in particular the terminal events, such as SuccessEvent, FailureEvent and CrashEvent.
 type WatchClient struct {
 	ctx     context.Context
 	rclient *redis.Client
