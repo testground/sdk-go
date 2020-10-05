@@ -79,7 +79,8 @@ func (s SuccessEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 }
 
 type FailureEvent struct {
-	Error string `json:"error"`
+	TestGroupID string `json:"group"`
+	Error       string `json:"error"`
 }
 
 func (FailureEvent) Type() string {
@@ -92,8 +93,9 @@ func (f FailureEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 }
 
 type CrashEvent struct {
-	Error      string `json:"error"`
-	Stacktrace string `json:"stacktrace"`
+	TestGroupID string `json:"group"`
+	Error       string `json:"error"`
+	Stacktrace  string `json:"stacktrace"`
 }
 
 func (CrashEvent) Type() string {
@@ -225,9 +227,7 @@ func (re *RunEnv) RecordSuccess() {
 // RecordFailure records that the calling instance failed with the supplied
 // error.
 func (re *RunEnv) RecordFailure(err error) {
-	e := &Event{FailureEvent: &FailureEvent{
-		Error: err.Error(),
-	}}
+	e := &Event{FailureEvent: &FailureEvent{TestGroupID: re.RunParams.TestGroupID, Error: err.Error()}}
 	re.logger.Info("", zap.Object("event", e))
 	re.metrics.recordEvent(e)
 
@@ -240,8 +240,9 @@ func (re *RunEnv) RecordFailure(err error) {
 // supplied error.
 func (re *RunEnv) RecordCrash(err interface{}) {
 	e := &Event{CrashEvent: &CrashEvent{
-		Error:      fmt.Sprintf("%s", err),
-		Stacktrace: string(debug.Stack()),
+		TestGroupID: re.RunParams.TestGroupID,
+		Error:       fmt.Sprintf("%s", err),
+		Stacktrace:  string(debug.Stack()),
 	}}
 	re.logger.Error("", zap.Object("event", e))
 	re.metrics.recordEvent(e)

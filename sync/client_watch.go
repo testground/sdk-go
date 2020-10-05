@@ -51,6 +51,7 @@ func (w *WatchClient) FetchAllEvents(rp *runtime.RunParams) ([]*runtime.Event, e
 			return nil, err
 		}
 
+		newId := id
 		for _, xr := range streams {
 			for _, msg := range xr.Messages {
 				payload := msg.Values[RedisPayloadKey].(string)
@@ -63,8 +64,13 @@ func (w *WatchClient) FetchAllEvents(rp *runtime.RunParams) ([]*runtime.Event, e
 
 				events = append(events, ev)
 
-				id = msg.ID
+				newId = msg.ID
 			}
+		}
+
+		// exit if the cursor hasn't changed
+		if newId == id {
+			break
 		}
 	}
 
