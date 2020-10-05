@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -33,6 +34,10 @@ func NewWatchClient(ctx context.Context, log *zap.SugaredLogger) (*WatchClient, 
 }
 
 func (w *WatchClient) FetchAllEvents(rp *runtime.RunParams) ([]*runtime.Event, error) {
+	if w == nil {
+		return nil, errors.New("watch client not initialised, due to lack of redis")
+	}
+
 	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
 
 	var events []*runtime.Event
@@ -76,6 +81,75 @@ func (w *WatchClient) FetchAllEvents(rp *runtime.RunParams) ([]*runtime.Event, e
 		}
 		id = newId
 	}
+
+	return events, nil
+}
+
+func (w *WatchClient) SubscribeEvents(ctx context.Context, rp *runtime.RunParams) (chan *runtime.Event, error) {
+	if w == nil {
+		return nil, errors.New("watch client not initialised, due to lack of redis")
+	}
+
+	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
+
+	events := make(chan *runtime.Event)
+
+	id := "0"
+
+	go func() {
+	RegenerateConnection:
+		conn := w.rclient.Conn()
+		clientid, err := conn.ClientID().Result()
+		if err != nil {
+			w.log.Error("got error on ClientID call", "err", err)
+			time.Sleep(1 * time.Second)
+			goto RegenerateConnection
+		}
+		fmt.Println(clientid)
+
+		for {
+			streamsc := make(chan []redis.XStream)
+			errc := make(chan error)
+			go func() {
+				args := &redis.XReadArgs{}
+				args.Streams = []string{key, id}
+				args.Block = 0
+				args.Count = 10000
+
+				streams, err := conn.XRead(args).Result()
+				if err != nil {
+					errc <- err
+				}
+				streamsc <- streams
+			}()
+
+			select {
+			case err := <-ctx.Done():
+				w.log.Warn("got error from ctx.Done", "err", err)
+				close(streamsc)
+				return
+			case err := <-errc:
+				w.log.Warn("got error from errc", "err", err)
+				goto RegenerateConnection
+			case streams := <-streamsc:
+				for _, xr := range streams {
+					for _, msg := range xr.Messages {
+						payload := msg.Values[RedisPayloadKey].(string)
+
+						ev := &runtime.Event{}
+						err := json.Unmarshal([]byte(payload), ev)
+						if err != nil {
+							panic(err)
+						}
+
+						events <- ev
+
+						id = msg.ID
+					}
+				}
+			}
+		}
+	}()
 
 	return events, nil
 }
