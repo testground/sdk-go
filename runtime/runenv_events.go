@@ -9,29 +9,14 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type (
-	EventType    string
-	EventOutcome string
-)
-
-const (
-	EventTypeStart   = EventType("start")
-	EventTypeMessage = EventType("message")
-	EventTypeOutcome = EventType("outcome")
-
-	EventOutcomeOK      = EventOutcome("ok")
-	EventOutcomeFailed  = EventOutcome("failed")
-	EventOutcomeCrashed = EventOutcome("crashed")
-)
-
 type Event struct {
-	*StartEvent      `json:"start_event"`
-	*MessageEvent    `json:"message_event"`
-	*SuccessEvent    `json:"success_event"`
-	*FailureEvent    `json:"failure_event"`
-	*CrashEvent      `json:"crash_event"`
-	*StageStartEvent `json:"stage_start_event"`
-	*StageEndEvent   `json:"stage_end_event"`
+	*StartEvent      `json:"start_event,omitempty"`
+	*MessageEvent    `json:"message_event,omitempty"`
+	*SuccessEvent    `json:"success_event,omitempty"`
+	*FailureEvent    `json:"failure_event,omitempty"`
+	*CrashEvent      `json:"crash_event,omitempty"`
+	*StageStartEvent `json:"stage_start_event,omitempty"`
+	*StageEndEvent   `json:"stage_end_event,omitempty"`
 }
 
 func (e *Event) Type() string {
@@ -64,7 +49,6 @@ func (StartEvent) Type() string {
 }
 
 func (s StartEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-	oe.AddString("type", s.Type())
 	return oe.AddObject("runenv", s.Runenv)
 }
 
@@ -77,7 +61,6 @@ func (MessageEvent) Type() string {
 }
 
 func (m MessageEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-	oe.AddString("type", m.Type())
 	oe.AddString("message", m.Message)
 	return nil
 }
@@ -91,7 +74,6 @@ func (SuccessEvent) Type() string {
 }
 
 func (s SuccessEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-	oe.AddString("type", s.Type())
 	oe.AddString("group", s.TestGroupID)
 	return nil
 }
@@ -105,7 +87,6 @@ func (FailureEvent) Type() string {
 }
 
 func (f FailureEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-	oe.AddString("type", f.Type())
 	oe.AddString("error", f.Error)
 	return nil
 }
@@ -120,7 +101,6 @@ func (CrashEvent) Type() string {
 }
 
 func (c CrashEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-	oe.AddString("type", c.Type())
 	oe.AddString("error", c.Error)
 	oe.AddString("stacktrace", c.Stacktrace)
 	return nil
@@ -136,7 +116,6 @@ func (StageStartEvent) Type() string {
 }
 
 func (s StageStartEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-	oe.AddString("type", s.Type())
 	oe.AddString("name", s.Name)
 	oe.AddString("group", s.TestGroupID)
 	return nil
@@ -152,7 +131,6 @@ func (StageEndEvent) Type() string {
 }
 
 func (s StageEndEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
-	oe.AddString("type", s.Type())
 	oe.AddString("name", s.Name)
 	oe.AddString("group", s.TestGroupID)
 	return nil
@@ -161,42 +139,22 @@ func (s StageEndEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 func (e Event) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 	switch {
 	case e.StartEvent != nil:
-		return e.StartEvent.MarshalLogObject(oe)
+		return oe.AddObject("start_event", e.StartEvent)
 	case e.MessageEvent != nil:
-		return e.MessageEvent.MarshalLogObject(oe)
+		return oe.AddObject("message_event", e.MessageEvent)
 	case e.SuccessEvent != nil:
-		return e.SuccessEvent.MarshalLogObject(oe)
+		return oe.AddObject("success_event", e.SuccessEvent)
 	case e.FailureEvent != nil:
-		return e.FailureEvent.MarshalLogObject(oe)
+		return oe.AddObject("failure_event", e.FailureEvent)
 	case e.CrashEvent != nil:
-		return e.CrashEvent.MarshalLogObject(oe)
+		return oe.AddObject("crash_event", e.CrashEvent)
 	case e.StageStartEvent != nil:
-		return e.StageStartEvent.MarshalLogObject(oe)
+		return oe.AddObject("stage_start_event", e.StageStartEvent)
 	case e.StageEndEvent != nil:
-		return e.StageEndEvent.MarshalLogObject(oe)
+		return oe.AddObject("stage_end_event", e.StageEndEvent)
 	default:
 		panic("no such event")
 	}
-
-	//oe.AddString("type", string(e.Type))
-
-	//if e.Outcome != "" {
-	//oe.AddString("outcome", string(e.Outcome))
-	//}
-	//if e.Error != "" {
-	//oe.AddString("error", e.Error)
-	//}
-	//if e.Stacktrace != "" {
-	//oe.AddString("stacktrace", e.Stacktrace)
-	//}
-	//if e.Message != "" {
-	//oe.AddString("message", e.Message)
-	//}
-	//if e.Runenv != nil {
-	//if err := oe.AddObject("runenv", e.Runenv); err != nil {
-	//return err
-	//}
-	//}
 }
 
 func (rp *RunParams) MarshalLogObject(oe zapcore.ObjectEncoder) error {

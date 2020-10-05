@@ -44,7 +44,7 @@ func TestPanicFromMain(t *testing.T) {
 		last = scanner.Text()
 	}
 
-	if !strings.Contains(last, "\"outcome\":\"crashed\"") {
+	if !strings.Contains(last, "\"type\":\"CrashEvent\"") {
 		t.Fatalf("expected crashed event; got: %s", last)
 	}
 }
@@ -68,7 +68,7 @@ func TestPanicFromChildGoroutine(t *testing.T) {
 		last = scanner.Text()
 	}
 
-	if !strings.Contains(last, "\"outcome\":\"crashed\"") {
+	if !strings.Contains(last, "\"type\":\"CrashEvent\"") {
 		t.Fatalf("expected crashed event; got: %s", last)
 	}
 }

@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-redis/redis/v7"
 	"github.com/testground/sdk-go/runtime"
-	"github.com/testground/testground/pkg/logging"
 	"go.uber.org/zap"
 )
 
@@ -18,8 +17,7 @@ type WatchClient struct {
 	log     *zap.SugaredLogger
 }
 
-func NewWatchClient(ctx context.Context) (*WatchClient, error) {
-	log := logging.S()
+func NewWatchClient(ctx context.Context, log *zap.SugaredLogger) (*WatchClient, error) {
 	rclient, err := redisClient(ctx, log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create redis client: %w", err)
