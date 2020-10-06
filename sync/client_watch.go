@@ -74,6 +74,7 @@ func (w *WatchClient) FetchAllEvents(rp *runtime.RunParams) ([]*runtime.Event, e
 		if newId == id {
 			break
 		}
+		id = newId
 	}
 
 	return events, nil
