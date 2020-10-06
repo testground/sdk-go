@@ -124,10 +124,11 @@ func (w *WatchClient) SubscribeEvents(ctx context.Context, rp *runtime.RunParams
 
 			select {
 			case err := <-ctx.Done():
-				w.log.Error("got error from ctx.Done", "err", err)
+				w.log.Warn("got error from ctx.Done", "err", err)
+				close(streamsc)
 				return
 			case err := <-errc:
-				w.log.Error("got error from errc", "err", err)
+				w.log.Warn("got error from errc", "err", err)
 				goto RegenerateConnection
 			case streams := <-streamsc:
 				for _, xr := range streams {
