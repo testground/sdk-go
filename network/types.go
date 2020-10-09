@@ -29,48 +29,48 @@ const (
 // LinkShape defines how traffic should be shaped.
 type LinkShape struct {
 	// Latency is the egress latency
-	Latency time.Duration
+	Latency time.Duration `json:"latency"`
 
 	// Jitter is the egress jitter
-	Jitter time.Duration
+	Jitter time.Duration `json:"jitter"`
 
 	// Bandwidth is egress bytes per second
-	Bandwidth uint64
+	Bandwidth uint64 `json:"bandwidth"`
 
 	// Drop all inbound traffic.
 	// TODO: Not implemented
-	Filter FilterAction
+	Filter FilterAction `json:"filter"`
 
 	// Loss is the egress packet loss (%)
-	Loss float32
+	Loss float32 `json:"loss"`
 
 	// Corrupt is the egress packet corruption probability (%)
-	Corrupt float32
+	Corrupt float32 `json:"corrupt"`
 
 	// Corrupt is the egress packet corruption correlation (%)
-	CorruptCorr float32
+	CorruptCorr float32 `json:"corruptCorr"`
 
 	// Reorder is the probability that an egress packet will be reordered (%)
 	//
 	// Reordered packets will skip the latency delay and be sent
 	// immediately. You must specify a non-zero Latency for this option to
 	// make sense.
-	Reorder float32
+	Reorder float32 `json:"reorder"`
 
 	// ReorderCorr is the egress packet reordering correlation (%)
-	ReorderCorr float32
+	ReorderCorr float32 `json:"reorderCorr"`
 
 	// Duplicate is the percentage of packets that are duplicated (%)
-	Duplicate float32
+	Duplicate float32 `json:"duplicate"`
 
 	// DuplicateCorr is the correlation between egress packet duplication (%)
-	DuplicateCorr float32
+	DuplicateCorr float32 `json:"duplicateCorr"`
 }
 
 // LinkRule applies a LinkShape to a subnet.
 type LinkRule struct {
 	LinkShape
-	Subnet net.IPNet
+	Subnet net.IPNet `json:"subnet"`
 }
 
 // RoutingPolicyType defines a certain routing policy to a network.
@@ -84,7 +84,7 @@ const (
 // NetworkConfig specifies how a node's network should be configured.
 type Config struct {
 	// Network is the name of the network to configure
-	Network string
+	Network string `json:"network"`
 
 	// IPv4 and IPv6 set the IP addresses of this network device. If
 	// unspecified, the sidecar will leave them alone.
@@ -97,21 +97,21 @@ type Config struct {
 	IPv4, IPv6 *net.IPNet
 
 	// Enable enables this network device.
-	Enable bool
+	Enable bool `json:"enable"`
 
 	// Default is the default link shaping rule.
-	Default LinkShape
+	Default LinkShape `json:"default"`
 
 	// Rules defines how traffic should be shaped to different subnets.
 	//
 	// TODO: This is not implemented.
-	Rules []LinkRule
+	Rules []LinkRule `json:"rules"`
 
 	// CallbackState will be signalled when the link changes are applied.
 	//
 	// Nodes can use the same state to wait for _all_ or a subset of nodes to
 	// enter the desired network state. See CallbackTarget.
-	CallbackState sync.State `json:"State"`
+	CallbackState sync.State `json:"callbackState"`
 
 	// CallbackTarget is the amount of instances that will have needed to signal
 	// on the Callback state to consider the configuration operation a success.
@@ -123,5 +123,5 @@ type Config struct {
 	// RoutingPolicy defines the data routing policy of a certain node. This affects
 	// external networks other than the network 'Default', e.g., external Internet
 	// access.
-	RoutingPolicy RoutingPolicyType
+	RoutingPolicy RoutingPolicyType `json:"routingPolicy"`
 }
