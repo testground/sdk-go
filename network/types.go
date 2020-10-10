@@ -2,9 +2,9 @@ package network
 
 import (
 	"fmt"
-	"net"
 	"time"
 
+	"github.com/testground/sdk-go/ptypes"
 	"github.com/testground/sdk-go/sync"
 )
 
@@ -48,7 +48,7 @@ type LinkShape struct {
 	Corrupt float32 `json:"corrupt"`
 
 	// Corrupt is the egress packet corruption correlation (%)
-	CorruptCorr float32 `json:"corruptCorr"`
+	CorruptCorr float32 `json:"corrupt_corr"`
 
 	// Reorder is the probability that an egress packet will be reordered (%)
 	//
@@ -58,19 +58,19 @@ type LinkShape struct {
 	Reorder float32 `json:"reorder"`
 
 	// ReorderCorr is the egress packet reordering correlation (%)
-	ReorderCorr float32 `json:"reorderCorr"`
+	ReorderCorr float32 `json:"reorder_corr"`
 
 	// Duplicate is the percentage of packets that are duplicated (%)
 	Duplicate float32 `json:"duplicate"`
 
 	// DuplicateCorr is the correlation between egress packet duplication (%)
-	DuplicateCorr float32 `json:"duplicateCorr"`
+	DuplicateCorr float32 `json:"duplicate_corr"`
 }
 
 // LinkRule applies a LinkShape to a subnet.
 type LinkRule struct {
 	LinkShape
-	Subnet net.IPNet `json:"subnet"`
+	Subnet ptypes.IPNet `json:"subnet"`
 }
 
 // RoutingPolicyType defines a certain routing policy to a network.
@@ -94,7 +94,7 @@ type Config struct {
 	// and shouldn't be used by the test.
 	//
 	// TODO: IPv6 is currently not supported.
-	IPv4, IPv6 *net.IPNet
+	IPv4, IPv6 *ptypes.IPNet
 
 	// Enable enables this network device.
 	Enable bool `json:"enable"`
@@ -111,7 +111,7 @@ type Config struct {
 	//
 	// Nodes can use the same state to wait for _all_ or a subset of nodes to
 	// enter the desired network state. See CallbackTarget.
-	CallbackState sync.State `json:"callbackState"`
+	CallbackState sync.State `json:"callback_state"`
 
 	// CallbackTarget is the amount of instances that will have needed to signal
 	// on the Callback state to consider the configuration operation a success.
@@ -123,5 +123,5 @@ type Config struct {
 	// RoutingPolicy defines the data routing policy of a certain node. This affects
 	// external networks other than the network 'Default', e.g., external Internet
 	// access.
-	RoutingPolicy RoutingPolicyType `json:"routingPolicy"`
+	RoutingPolicy RoutingPolicyType `json:"routing_policy"`
 }

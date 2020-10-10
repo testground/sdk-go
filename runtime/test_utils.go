@@ -8,6 +8,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/testground/sdk-go/ptypes"
 )
 
 // RandomTestRunEnv generates a random RunEnv for testing purposes.
@@ -29,7 +31,7 @@ func RandomTestRunEnv(t *testing.T) (re *RunEnv, cleanup func()) {
 		TestSidecar:            false,
 		TestCase:               fmt.Sprintf("testcase-%d", rand.Uint32()),
 		TestRun:                fmt.Sprintf("testrun-%d", rand.Uint32()),
-		TestSubnet:             &IPNet{IPNet: *subnet},
+		TestSubnet:             &ptypes.IPNet{IPNet: *subnet},
 		TestInstanceCount:      int(1 + (rand.Uint32() % 999)),
 		TestInstanceRole:       "",
 		TestInstanceParams:     make(map[string]string),

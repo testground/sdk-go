@@ -10,37 +10,8 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/testground/sdk-go/ptypes"
 )
-
-type IPNet struct {
-	net.IPNet
-}
-
-func (i IPNet) MarshalJSON() ([]byte, error) {
-	if len(i.IPNet.IP) == 0 {
-		return json.Marshal("")
-	}
-	return json.Marshal(i.String())
-}
-
-func (i *IPNet) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-
-	if s == "" {
-		return nil
-	}
-
-	_, ipnet, err := net.ParseCIDR(s)
-	if err != nil {
-		return err
-	}
-
-	i.IPNet = *ipnet
-	return nil
-}
 
 // RunParams encapsulates the runtime parameters for this test.
 type RunParams struct {
@@ -71,8 +42,8 @@ type RunParams struct {
 	// the "data" network interface.
 	//
 	// This will be 127.1.0.0/16 when using the local exec runner.
-	TestSubnet    *IPNet    `json:"network,omitempty"`
-	TestStartTime time.Time `json:"start_time,omitempty"`
+	TestSubnet    *ptypes.IPNet `json:"network,omitempty"`
+	TestStartTime time.Time     `json:"start_time,omitempty"`
 }
 
 // ParseRunParams parses a list of environment variables into a RunParams.
@@ -285,12 +256,12 @@ func toBool(s string) bool {
 }
 
 // toNet might parse any input, so it is possible to get an error and nil return value
-func toNet(s string) *IPNet {
+func toNet(s string) *ptypes.IPNet {
 	_, ipnet, err := net.ParseCIDR(s)
 	if err != nil {
 		return nil
 	}
-	return &IPNet{IPNet: *ipnet}
+	return &ptypes.IPNet{IPNet: *ipnet}
 }
 
 // Try to parse the time.
