@@ -213,6 +213,8 @@ func (re *RunEnv) RecordStart() {
 
 	re.logger.Info("", zap.Object("event", e))
 	re.metrics.recordEvent(e)
+
+	_ = re.signalEmitter.SignalEvent(context.Background(), e)
 }
 
 // RecordSuccess records that the calling instance succeeded.
@@ -221,21 +223,17 @@ func (re *RunEnv) RecordSuccess() {
 	re.logger.Info("", zap.Object("event", e))
 	re.metrics.recordEvent(e)
 
-	if re.signalEventer != nil {
-		_ = re.signalEventer.SignalEvent(context.Background(), e)
-	}
+	_ = re.signalEmitter.SignalEvent(context.Background(), e)
 }
 
 // RecordFailure records that the calling instance failed with the supplied
 // error.
 func (re *RunEnv) RecordFailure(err error) {
 	e := &Event{FailureEvent: &FailureEvent{TestGroupID: re.RunParams.TestGroupID, Error: err.Error()}}
-	re.logger.Info("", zap.Object("event", e))
+	re.logger.Error("", zap.Object("event", e))
 	re.metrics.recordEvent(e)
 
-	if re.signalEventer != nil {
-		_ = re.signalEventer.SignalEvent(context.Background(), e)
-	}
+	_ = re.signalEmitter.SignalEvent(context.Background(), e)
 }
 
 // RecordCrash records that the calling instance crashed/panicked with the
@@ -249,7 +247,5 @@ func (re *RunEnv) RecordCrash(err interface{}) {
 	re.logger.Error("", zap.Object("event", e))
 	re.metrics.recordEvent(e)
 
-	if re.signalEventer != nil {
-		_ = re.signalEventer.SignalEvent(context.Background(), e)
-	}
+	_ = re.signalEmitter.SignalEvent(context.Background(), e)
 }

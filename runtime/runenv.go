@@ -63,6 +63,7 @@ func NewRunEnv(params RunParams) *RunEnv {
 
 	re.structured.ch = make(chan *zap.Logger)
 	re.unstructured.ch = make(chan *os.File)
+	re.signalEmitter = &NilSignalEmitter{}
 
 	re.wg.Add(1)
 	go re.manageAssets()
@@ -73,7 +74,13 @@ func NewRunEnv(params RunParams) *RunEnv {
 }
 
 type SignalEmitter interface {
-	SignalEmitter(context.Context, interface{}) error
+	SignalEvent(context.Context, interface{}) error
+}
+
+type NilSignalEmitter struct{}
+
+func (ne NilSignalEmitter) SignalEvent(ctx context.Context, event interface{}) error {
+	return nil
 }
 
 func (re *RunEnv) AttachSyncClient(se SignalEmitter) {
