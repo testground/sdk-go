@@ -45,7 +45,7 @@ type StartEvent struct {
 }
 
 func (StartEvent) Type() string {
-	return "StartEvent"
+	return "start_event"
 }
 
 func (s StartEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
@@ -57,7 +57,7 @@ type MessageEvent struct {
 }
 
 func (MessageEvent) Type() string {
-	return "MessageEvent"
+	return "message_event"
 }
 
 func (m MessageEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
@@ -84,7 +84,7 @@ type FailureEvent struct {
 }
 
 func (FailureEvent) Type() string {
-	return "FailureEvent"
+	return "failure_event"
 }
 
 func (f FailureEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
@@ -100,7 +100,7 @@ type CrashEvent struct {
 }
 
 func (CrashEvent) Type() string {
-	return "CrashEvent"
+	return "crash_event"
 }
 
 func (c CrashEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
@@ -116,7 +116,7 @@ type StageStartEvent struct {
 }
 
 func (StageStartEvent) Type() string {
-	return "StageStartEvent"
+	return "stage_start_event"
 }
 
 func (s StageStartEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {
@@ -131,7 +131,7 @@ type StageEndEvent struct {
 }
 
 func (StageEndEvent) Type() string {
-	return "StageEndEvent"
+	return "stage_end_event"
 }
 
 func (s StageEndEvent) MarshalLogObject(oe zapcore.ObjectEncoder) error {

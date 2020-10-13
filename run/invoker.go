@@ -169,7 +169,8 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 		}
 	case p := <-panicHandler:
 		// propagate the panic.
-		panic(p)
+		runenv.RecordCrash(p.DebugStacktrace)
+		panic(p.RecoverObj)
 	}
 }
 
