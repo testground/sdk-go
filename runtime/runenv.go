@@ -33,7 +33,7 @@ type RunEnv struct {
 
 	logger        *zap.Logger
 	metrics       *Metrics
-	signalEventer SignalEventer
+	signalEmitter SignalEmitter
 
 	wg        gosync.WaitGroup
 	closeCh   chan struct{}
@@ -72,12 +72,12 @@ func NewRunEnv(params RunParams) *RunEnv {
 	return re
 }
 
-type SignalEventer interface {
-	SignalEvent(context.Context, interface{}) error
+type SignalEmitter interface {
+	SignalEmitter(context.Context, interface{}) error
 }
 
-func (re *RunEnv) AttachSyncClient(se SignalEventer) {
-	re.signalEventer = se
+func (re *RunEnv) AttachSyncClient(se SignalEmitter) {
+	re.signalEmitter = se
 }
 
 // R returns a metrics object for results.
