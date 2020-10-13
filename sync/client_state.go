@@ -2,6 +2,11 @@ package sync
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+
+	"github.com/go-redis/redis/v7"
+	"github.com/testground/sdk-go/runtime"
 )
 
 // Barrier sets a barrier on the supplied State that fires when it reaches its
@@ -72,4 +77,31 @@ func (c *DefaultClient) SignalEntry(ctx context.Context, state State) (after int
 
 	c.log.Debugw("new value of state", "key", key, "value", seq)
 	return seq, err
+}
+
+func (c *DefaultClient) SignalEvent(ctx context.Context, event *runtime.Event) (err error) {
+	rp := c.extractor(ctx)
+	if rp == nil {
+		return ErrNoRunParameters
+	}
+
+	key := fmt.Sprintf("run:%s:plan:%s:case:%s:run_events", rp.TestRun, rp.TestPlan, rp.TestCase)
+
+	ev, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+
+	args := &redis.XAddArgs{
+		Stream: key,
+		ID:     "*",
+		Values: map[string]interface{}{RedisPayloadKey: ev},
+	}
+
+	_, err = c.rclient.XAdd(args).Result()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

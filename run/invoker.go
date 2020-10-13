@@ -85,6 +85,13 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 
 	runenv.RecordStart()
 
+	var closer func()
+	defer func() {
+		if closer != nil {
+			closer()
+		}
+	}()
+
 	var err error
 	errfile, err := runenv.CreateRawAsset("run.err")
 	if err != nil {
@@ -144,7 +151,7 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 		case InitializedTestCaseFn:
 			ic := new(InitContext)
 			ic.init(runenv)
-			defer ic.close()
+			closer = ic.close // we want to close the InitContext after having calld RecordSuccess or RecordFailure
 			errCh <- f(runenv, ic)
 		default:
 			msg := fmt.Sprintf("unexpected function passed to Invoke*; expected types: TestCaseFn, InitializedTestCaseFn; was: %T", f)
@@ -162,7 +169,8 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 		}
 	case p := <-panicHandler:
 		// propagate the panic.
-		panic(p)
+		runenv.RecordCrash(p.DebugStacktrace)
+		panic(p.RecoverObj)
 	}
 }
 

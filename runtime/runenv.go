@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"os"
 	gosync "sync"
 	"time"
@@ -30,8 +31,9 @@ var (
 type RunEnv struct {
 	RunParams
 
-	logger  *zap.Logger
-	metrics *Metrics
+	logger        *zap.Logger
+	metrics       *Metrics
+	signalEmitter SignalEmitter
 
 	wg        gosync.WaitGroup
 	closeCh   chan struct{}
@@ -61,6 +63,7 @@ func NewRunEnv(params RunParams) *RunEnv {
 
 	re.structured.ch = make(chan *zap.Logger)
 	re.unstructured.ch = make(chan *os.File)
+	re.signalEmitter = &NilSignalEmitter{}
 
 	re.wg.Add(1)
 	go re.manageAssets()
@@ -68,6 +71,20 @@ func NewRunEnv(params RunParams) *RunEnv {
 	re.metrics = newMetrics(re)
 
 	return re
+}
+
+type SignalEmitter interface {
+	SignalEvent(context.Context, *Event) error
+}
+
+type NilSignalEmitter struct{}
+
+func (ne NilSignalEmitter) SignalEvent(ctx context.Context, event *Event) error {
+	return nil
+}
+
+func (re *RunEnv) AttachSyncClient(se SignalEmitter) {
+	re.signalEmitter = se
 }
 
 // R returns a metrics object for results.

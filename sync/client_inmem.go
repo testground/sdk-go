@@ -4,6 +4,8 @@ import (
 	"context"
 	"reflect"
 	"sync"
+
+	"github.com/testground/sdk-go/runtime"
 )
 
 type inmemClient struct {
@@ -117,6 +119,10 @@ func (i *inmemClient) SignalEntry(_ context.Context, state State) (after int64, 
 	i.barriers[state] = i.barriers[state][:idx]
 
 	return v, nil
+}
+
+func (i *inmemClient) SignalEvent(_ context.Context, event *runtime.Event) error {
+	return nil
 }
 
 func (i *inmemClient) Close() error {

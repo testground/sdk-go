@@ -109,28 +109,27 @@ func TestAllEvents(t *testing.T) {
 
 		switch evt := m.Event; i {
 		case 0:
-			require.Equal(EventTypeMessage, evt.Type)
+			require.NotNil(evt.MessageEvent)
 			require.Condition(func() bool { return strings.HasPrefix(evt.Message, "InfluxDB unavailable") })
 		case 1:
-			require.Equal(EventTypeStart, evt.Type)
+			require.NotNil(evt.StartEvent)
 			require.Equal(evt.Runenv.TestPlan, re.TestPlan)
 			require.Equal(evt.Runenv.TestCase, re.TestCase)
 			require.Equal(evt.Runenv.TestRun, re.TestRun)
 			require.Equal(evt.Runenv.TestGroupID, re.TestGroupID)
 		case 2:
-			require.Equal(EventTypeFinish, evt.Type)
-			require.Equal(EventOutcomeFailed, evt.Outcome)
-			require.Equal("bang", evt.Error)
+			require.NotNil(evt.FailureEvent)
+			require.Equal("bang", evt.FailureEvent.Error)
 		case 3:
-			require.Equal(EventTypeFinish, evt.Type)
-			require.Equal(EventOutcomeCrashed, evt.Outcome)
-			require.Equal("terrible bang", evt.Error)
+			require.NotNil(evt.CrashEvent)
+			require.Equal("terrible bang", evt.CrashEvent.Error)
 			require.NotEmpty(evt.Stacktrace)
 		case 4:
-			require.Equal(EventTypeMessage, evt.Type)
+			require.NotNil(evt.MessageEvent)
+			require.Equal(evt.Type(), "message_event")
+			require.Equal("i have something to say", evt.MessageEvent.Message)
 		case 5:
-			require.Equal(evt.Type, EventTypeFinish)
-			require.Equal(evt.Outcome, EventOutcomeOK)
+			require.NotNil(evt.SuccessEvent)
 		}
 		i++
 	}

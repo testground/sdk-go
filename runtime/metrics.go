@@ -186,21 +186,18 @@ func (m *Metrics) recordEvent(evt *Event) {
 	}
 
 	// this map copy is terrible; the influxdb v2 SDK makes points mutable.
-	tags := make(map[string]string, len(m.tags)+1)
+	tags := make(map[string]string, len(m.tags)+2)
 	for k, v := range m.tags {
 		tags[k] = v
 	}
 
-	if evt.Outcome != "" {
-		tags["outcome"] = string(evt.Outcome)
-	}
-
 	fields := map[string]interface{}{
-		"error": evt.Error,
+		"count": 1,
 	}
 
-	measurement := fmt.Sprintf("events.%s", string(evt.Type))
-	p, err := client.NewPoint(measurement, tags, fields)
+	tags["event_type"] = evt.Type()
+
+	p, err := client.NewPoint("events", tags, fields)
 	if err != nil {
 		m.re.RecordMessage("failed to create InfluxDB point: %s", err)
 	}
