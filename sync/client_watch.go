@@ -38,7 +38,7 @@ func (w *WatchClient) FetchAllEvents(rp *runtime.RunParams) ([]*runtime.Event, e
 		return nil, errors.New("watch client not initialised, due to lack of redis")
 	}
 
-	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
+	key := fmt.Sprintf("run:%s:plan:%s:case:%s:run_events", rp.TestRun, rp.TestPlan, rp.TestCase)
 
 	var events []*runtime.Event
 
@@ -90,7 +90,7 @@ func (w *WatchClient) SubscribeEvents(ctx context.Context, rp *runtime.RunParams
 		return nil, errors.New("watch client not initialised, due to lack of redis")
 	}
 
-	key := fmt.Sprintf("run:%s:plan:%s:case:%s", rp.TestRun, rp.TestPlan, rp.TestCase)
+	key := fmt.Sprintf("run:%s:plan:%s:case:%s:run_events", rp.TestRun, rp.TestPlan, rp.TestCase)
 
 	events := make(chan *runtime.Event)
 
