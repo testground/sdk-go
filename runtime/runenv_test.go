@@ -126,7 +126,7 @@ func TestAllEvents(t *testing.T) {
 			require.NotEmpty(evt.Stacktrace)
 		case 4:
 			require.NotNil(evt.MessageEvent)
-			require.Equal(evt.Type(), "MessageEvent")
+			require.Equal(evt.Type(), "message_event")
 			require.Equal("i have something to say", evt.MessageEvent.Message)
 		case 5:
 			require.NotNil(evt.SuccessEvent)

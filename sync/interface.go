@@ -3,6 +3,8 @@ package sync
 import (
 	"context"
 	"io"
+
+	"github.com/testground/sdk-go/runtime"
 )
 
 type Client interface {
@@ -26,5 +28,5 @@ type Client interface {
 	MustPublishSubscribe(ctx context.Context, topic *Topic, payload interface{}, ch interface{}) (seq int64, sub *Subscription)
 	MustSignalAndWait(ctx context.Context, state State, target int) (seq int64)
 
-	SignalEvent(context.Context, interface{}) error
+	SignalEvent(context.Context, *runtime.Event) error
 }

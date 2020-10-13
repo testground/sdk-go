@@ -74,12 +74,12 @@ func NewRunEnv(params RunParams) *RunEnv {
 }
 
 type SignalEmitter interface {
-	SignalEvent(context.Context, interface{}) error
+	SignalEvent(context.Context, *Event) error
 }
 
 type NilSignalEmitter struct{}
 
-func (ne NilSignalEmitter) SignalEvent(ctx context.Context, event interface{}) error {
+func (ne NilSignalEmitter) SignalEvent(ctx context.Context, event *Event) error {
 	return nil
 }
 

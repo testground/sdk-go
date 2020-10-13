@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/go-redis/redis/v7"
+	"github.com/testground/sdk-go/runtime"
 )
 
 // Barrier sets a barrier on the supplied State that fires when it reaches its
@@ -78,7 +79,7 @@ func (c *DefaultClient) SignalEntry(ctx context.Context, state State) (after int
 	return seq, err
 }
 
-func (c *DefaultClient) SignalEvent(ctx context.Context, event interface{}) (err error) {
+func (c *DefaultClient) SignalEvent(ctx context.Context, event *runtime.Event) (err error) {
 	c.log.Debugw("inside signal entry")
 	rp := c.extractor(ctx)
 	if rp == nil {
