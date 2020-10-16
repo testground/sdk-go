@@ -31,6 +31,11 @@ func (i *IPNet) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	ipv4 := ip.To4()
+	if ip != nil {
+		ip = ipv4
+	}
+
 	ipnet.IP = ip
 	i.IPNet = *ipnet
 	return nil
