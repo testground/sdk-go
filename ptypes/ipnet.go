@@ -26,11 +26,17 @@ func (i *IPNet) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	_, ipnet, err := net.ParseCIDR(s)
+	ip, ipnet, err := net.ParseCIDR(s)
 	if err != nil {
 		return err
 	}
 
+	ipv4 := ip.To4()
+	if ip != nil {
+		ip = ipv4
+	}
+
+	ipnet.IP = ip
 	i.IPNet = *ipnet
 	return nil
 }
