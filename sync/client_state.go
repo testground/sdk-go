@@ -98,8 +98,11 @@ func (c *DefaultClient) SignalEvent(ctx context.Context, event *runtime.Event) (
 		Values: map[string]interface{}{RedisPayloadKey: ev},
 	}
 
+	c.log.Debugw("emitting an xadd", "key", key, "ev", event.Type())
+
 	_, err = c.rclient.XAdd(args).Result()
 	if err != nil {
+		c.log.Errorw("error while emitting an xadd", "key", key, "ev", event.Type(), "err", err)
 		return err
 	}
 
