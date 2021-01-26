@@ -29,8 +29,6 @@ func newMetrics(re *RunEnv) *Metrics {
 	var dsinks = []MetricSinkFn{m.logSinkJSON("diagnostics.out")}
 	if client, err := NewInfluxDBClient(re); err == nil {
 		m.tags = map[string]string{
-			//"plan":     re.TestPlan,
-			//"case":     re.TestCase,
 			"run":      re.TestRun,
 			"group_id": re.TestGroupID,
 		}
