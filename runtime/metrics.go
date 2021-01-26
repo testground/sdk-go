@@ -29,8 +29,6 @@ func newMetrics(re *RunEnv) *Metrics {
 	var dsinks = []MetricSinkFn{m.logSinkJSON("diagnostics.out")}
 	if client, err := NewInfluxDBClient(re); err == nil {
 		m.tags = map[string]string{
-			"plan":     re.TestPlan,
-			"case":     re.TestCase,
 			"run":      re.TestRun,
 			"group_id": re.TestGroupID,
 		}
@@ -168,7 +166,8 @@ func (m *Metrics) writeToInfluxDBSink(measurementType string) MetricSinkFn {
 				tags = m.tags
 			}
 
-			measurementName := fmt.Sprintf("%s.%s.%s", measurementType, vals[0], metric.Type.String())
+			prefix := fmt.Sprintf("%s.%s-%s", measurementType, m.re.TestPlan, m.re.TestCase)
+			measurementName := fmt.Sprintf("%s.%s.%s", prefix, vals[0], metric.Type.String())
 
 			p, err := client.NewPoint(measurementName, tags, fields, time.Unix(0, metric.Timestamp))
 			if err != nil {
