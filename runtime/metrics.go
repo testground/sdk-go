@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -78,25 +77,26 @@ func (m *Metrics) Close() error {
 	// close results; no more results via runenv.R() can be recorded.
 	err = multierror.Append(err, m.results.Close())
 
-	if m.influxdb != nil {
-		// Next, we reopen the results.out file, and write all points to InfluxDB.
-		results := filepath.Join(m.re.TestOutputsPath, "results.out")
-		if file, errf := os.OpenFile(results, os.O_RDONLY, 0666); errf == nil {
-			err = multierror.Append(err, m.batchInsertInfluxDB(file))
-		} else {
-			err = multierror.Append(err, errf)
-		}
-	}
+	// disable influxdb publishing.
+	// if m.influxdb != nil {
+	// 	// Next, we reopen the results.out file, and write all points to InfluxDB.
+	// 	results := filepath.Join(m.re.TestOutputsPath, "results.out")
+	// 	if file, errf := os.OpenFile(results, os.O_RDONLY, 0666); errf == nil {
+	// 		err = multierror.Append(err, m.batchInsertInfluxDB(file))
+	// 	} else {
+	// 		err = multierror.Append(err, errf)
+	// 	}
+	// }
 
-	// Flush the immediate InfluxDB writer.
-	if m.batcher != nil {
-		err = multierror.Append(err, m.batcher.Close())
-	}
-
-	// Now we're ready to close InfluxDB.
-	if m.influxdb != nil {
-		err = multierror.Append(err, m.influxdb.Close())
-	}
+	// // Flush the immediate InfluxDB writer.
+	// if m.batcher != nil {
+	// 	err = multierror.Append(err, m.batcher.Close())
+	// }
+	//
+	// // Now we're ready to close InfluxDB.
+	// if m.influxdb != nil {
+	// 	err = multierror.Append(err, m.influxdb.Close())
+	// }
 
 	return err.ErrorOrNil()
 }
