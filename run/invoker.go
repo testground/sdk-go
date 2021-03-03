@@ -17,9 +17,15 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/raulk/clock"
 
 	"github.com/testground/sdk-go"
 	"github.com/testground/sdk-go/runtime"
+)
+
+var (
+	// _clk can be overridden with a mock clock for test purposes.
+	_clk = clock.New()
 )
 
 const (
@@ -234,27 +240,29 @@ func captureProfiles(runenv *runtime.RunEnv) (ProfilesCloseFn, error) {
 				continue
 			}
 
+			kind := kind
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 
-				ticker := time.NewTicker(freq)
-				for i := 0; ; i++ {
+				ticker := _clk.Ticker(freq)
+				for {
 					select {
 					case <-ticker.C:
-						path := filepath.Join(outDir, fmt.Sprintf("%s.%d.prof", kind, i))
+						path := filepath.Join(outDir, fmt.Sprintf("%s.%s.prof", kind, _clk.Now().Format(time.RFC3339)))
 						f, err := os.Create(path)
 						if err != nil {
 							runenv.SLogger().Warnw("failed to create output file for profile", "kind", kind, "path", path, "error", err)
 							continue
 						}
+						runenv.SLogger().Debugf("writing profile: %s", path)
 						if err = prof.WriteTo(f, 0); err != nil {
 							runenv.SLogger().Warnw("failed to write profile", "kind", kind, "path", path, "error", err)
 							continue
 						}
 						_ = f.Close()
 					case <-ctx.Done():
-						// exiting
+						return // exiting
 					}
 				}
 			}()
