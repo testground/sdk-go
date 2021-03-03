@@ -84,6 +84,9 @@ func ParseRunParams(env []string) (*RunParams, error) {
 
 func (rp *RunParams) ToEnvVars() map[string]string {
 	packParams := func(in map[string]string) string {
+		if in == nil {
+			return ""
+		}
 		arr := make([]string, 0, len(in))
 		for k, v := range in {
 			arr = append(arr, k+"="+v)
