@@ -204,8 +204,6 @@ func captureProfiles(runenv *runtime.RunEnv) (ProfilesCloseFn, error) {
 	)
 
 	ret := func() error {
-		// stop the CPU profile.
-		pprof.StopCPUProfile()
 		// cancel all other profiles, and wait until they have yielded.
 		cancel()
 		wg.Wait()
@@ -227,6 +225,16 @@ func captureProfiles(runenv *runtime.RunEnv) (ProfilesCloseFn, error) {
 				merr = multierror.Append(merr, err)
 				continue
 			}
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				<-ctx.Done()
+				// stop the CPU profile.
+				pprof.StopCPUProfile()
+				_ = f.Close()
+			}()
 
 		default:
 			prof := pprof.Lookup(kind)
