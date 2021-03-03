@@ -213,6 +213,8 @@ func captureProfiles(runenv *runtime.RunEnv) (ProfilesCloseFn, error) {
 	for kind, value := range runenv.TestCaptureProfiles {
 		switch kind {
 		case "cpu":
+			runenv.SLogger().Infof("writing cpu profile")
+
 			path := filepath.Join(outDir, "cpu.prof")
 			f, err := os.Create(path)
 			if err != nil {
@@ -247,6 +249,8 @@ func captureProfiles(runenv *runtime.RunEnv) (ProfilesCloseFn, error) {
 				merr = multierror.Append(merr, fmt.Errorf("unparseable duration for profile of kind %s: %s", kind, value))
 				continue
 			}
+
+			runenv.SLogger().Infof("writing %s profile every %s", kind, freq)
 
 			kind := kind
 			wg.Add(1)
