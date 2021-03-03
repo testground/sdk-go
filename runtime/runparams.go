@@ -44,6 +44,15 @@ type RunParams struct {
 	// This will be 127.1.0.0/16 when using the local exec runner.
 	TestSubnet    *ptypes.IPNet `json:"network,omitempty"`
 	TestStartTime time.Time     `json:"start_time,omitempty"`
+
+	// TestCaptureProfiles lists the profile types to capture. These are
+	// SDK-dependent. The Go SDK supports these profiles:
+	//
+	// * cpu => value ignored; CPU profile spans the entire life of the test.
+	// * any supported profile type https://golang.org/pkg/runtime/pprof/#Profile =>
+	//   value is a string representation of time.Duration, referring to
+	//   the frequency at which profiles will be captured.
+	TestCaptureProfiles map[string]string `json:"capture_profiles,omitempty"`
 }
 
 // ParseRunParams parses a list of environment variables into a RunParams.
@@ -69,6 +78,7 @@ func ParseRunParams(env []string) (*RunParams, error) {
 		TestStartTime:          toTime(EnvTestStartTime),
 		TestSubnet:             toNet(m[EnvTestSubnet]),
 		TestTag:                m[EnvTestTag],
+		TestCaptureProfiles:    unpackParams(m[EnvTestCaptureProfiles]),
 	}, nil
 }
 
@@ -97,6 +107,7 @@ func (rp *RunParams) ToEnvVars() map[string]string {
 		EnvTestStartTime:          rp.TestStartTime.Format(time.RFC3339),
 		EnvTestSubnet:             rp.TestSubnet.String(),
 		EnvTestTag:                rp.TestTag,
+		EnvTestCaptureProfiles:    packParams(rp.TestCaptureProfiles),
 	}
 
 	return out
