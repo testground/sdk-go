@@ -1,19 +1,31 @@
 package run
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"path/filepath"
 	"runtime/debug"
+	"runtime/pprof"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/raulk/clock"
 
 	"github.com/testground/sdk-go"
 	"github.com/testground/sdk-go/runtime"
+)
+
+var (
+	// _clk can be overridden with a mock clock for test purposes.
+	_clk = clock.New()
 )
 
 const (
@@ -140,6 +152,12 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 		}
 	}()
 
+	closeProfiles, err := captureProfiles(runenv)
+	if err != nil {
+		runenv.SLogger().Warnw("some or all profile captures failed to initialize", "error", err)
+	}
+	defer closeProfiles()
+
 	errCh := make(chan error)
 	go func() {
 		defer close(errCh)
@@ -172,6 +190,99 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 		runenv.RecordCrash(p.DebugStacktrace)
 		panic(p.RecoverObj)
 	}
+}
+
+type ProfilesCloseFn = func() error
+
+func captureProfiles(runenv *runtime.RunEnv) (ProfilesCloseFn, error) {
+	outDir := runenv.TestOutputsPath
+
+	var (
+		merr        *multierror.Error
+		wg          sync.WaitGroup
+		ctx, cancel = context.WithCancel(context.Background())
+	)
+
+	ret := func() error {
+		// cancel all other profiles, and wait until they have yielded.
+		cancel()
+		wg.Wait()
+		return nil
+	}
+
+	for kind, value := range runenv.TestCaptureProfiles {
+		switch kind {
+		case "cpu":
+			runenv.SLogger().Infof("writing cpu profile")
+
+			path := filepath.Join(outDir, "cpu.prof")
+			f, err := os.Create(path)
+			if err != nil {
+				err = fmt.Errorf("failed to create CPU profile output file: %w", err)
+				merr = multierror.Append(merr, err)
+				continue
+			}
+			if err = pprof.StartCPUProfile(f); err != nil {
+				err = fmt.Errorf("failed to start capturing CPU profile: %w", err)
+				merr = multierror.Append(merr, err)
+				continue
+			}
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				<-ctx.Done()
+				// stop the CPU profile.
+				pprof.StopCPUProfile()
+				_ = f.Close()
+			}()
+
+		default:
+			prof := pprof.Lookup(kind)
+			if prof == nil {
+				merr = multierror.Append(merr, fmt.Errorf("profile of kind %s not recognized; skipped", kind))
+				continue
+			}
+			freq, err := time.ParseDuration(value)
+			if err != nil {
+				merr = multierror.Append(merr, fmt.Errorf("unparseable duration for profile of kind %s: %s", kind, value))
+				continue
+			}
+
+			runenv.SLogger().Infof("writing %s profile every %s", kind, freq)
+
+			kind := kind
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				ticker := _clk.Ticker(freq)
+				for {
+					select {
+					case <-ticker.C:
+						path := filepath.Join(outDir, fmt.Sprintf("%s.%s.prof", kind, _clk.Now().Format(time.RFC3339)))
+						f, err := os.Create(path)
+						if err != nil {
+							runenv.SLogger().Warnw("failed to create output file for profile", "kind", kind, "path", path, "error", err)
+							continue
+						}
+						runenv.SLogger().Debugf("writing profile: %s", path)
+						if err = prof.WriteTo(f, 0); err != nil {
+							runenv.SLogger().Warnw("failed to write profile", "kind", kind, "path", path, "error", err)
+							continue
+						}
+						_ = f.Close()
+					case <-ctx.Done():
+						return // exiting
+					}
+				}
+			}()
+
+		}
+	}
+
+	return ret, merr.ErrorOrNil()
 }
 
 func maybeSetupHTTPListener(runenv *runtime.RunEnv) {

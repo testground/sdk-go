@@ -3,8 +3,12 @@ package run
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/raulk/clock"
 
 	"github.com/testground/sdk-go/runtime"
 	"github.com/testground/sdk-go/sync"
@@ -84,4 +88,57 @@ func TestUninitializedInvoke(t *testing.T) {
 	}))
 	await(ch)
 
+}
+
+func TestProfiles(t *testing.T) {
+	clk := clock.NewMock()
+	_clk = clk
+
+	env, cleanup := runtime.RandomTestRunEnv(t)
+	t.Cleanup(cleanup)
+
+	env.TestCaptureProfiles = map[string]string{
+		"cpu":         "foo", // disregarded
+		"heap":        "5s",
+		"allocs":      "10s",
+		"goroutine":   "30s",
+		"block":       "1h", // will never be written
+		"unsupported": "foo",
+	}
+
+	stop, err := captureProfiles(env)
+	require.Error(t, err) // error due to "unsupported" profile.
+	require.Equal(t, 1, err.(*multierror.Error).Len())
+	defer stop()
+
+	time.Sleep(500 * time.Millisecond) // allow goroutines to start.
+
+	for i := 1; i <= 6; i++ {
+		// advance the clock 5 seconds; sleep 500ms for goroutines to execute.
+		clk.Add(5 * time.Second)
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// stop.
+	require.NoError(t, stop())
+
+	// 1 cpu profile.
+	matches, _ := filepath.Glob(filepath.Join(env.TestOutputsPath, "cpu.prof"))
+	require.Len(t, matches, 1)
+
+	// 6 heap profiles.
+	matches, _ = filepath.Glob(filepath.Join(env.TestOutputsPath, "heap.*.prof"))
+	require.Len(t, matches, 6)
+
+	// 3 allocs profiles.
+	matches, _ = filepath.Glob(filepath.Join(env.TestOutputsPath, "allocs.*.prof"))
+	require.Len(t, matches, 3)
+
+	// 1 goroutine profiles.
+	matches, _ = filepath.Glob(filepath.Join(env.TestOutputsPath, "goroutine.*.prof"))
+	require.Len(t, matches, 1)
+
+	// no more profiles.
+	matches, _ = filepath.Glob(filepath.Join(env.TestOutputsPath, "*.prof"))
+	require.Len(t, matches, 11)
 }

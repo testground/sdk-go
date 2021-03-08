@@ -16,4 +16,5 @@ const (
 	EnvTestStartTime          = "TEST_START_TIME"
 	EnvTestSubnet             = "TEST_SUBNET"
 	EnvTestTag                = "TEST_TAG"
+	EnvTestCaptureProfiles    = "TEST_CAPTURE_PROFILES"
 )
