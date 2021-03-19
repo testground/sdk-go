@@ -12,8 +12,8 @@ import (
 type Size uint64
 
 var (
-	_ json.Marshaler   = Duration{}
-	_ json.Unmarshaler = &Duration{}
+	_ json.Marshaler   = Size(0)
+	_ json.Unmarshaler = (*Size)(nil)
 )
 
 func (s Size) MarshalJSON() ([]byte, error) {
