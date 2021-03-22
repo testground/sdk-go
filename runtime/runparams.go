@@ -25,6 +25,7 @@ type RunParams struct {
 	TestTag    string `json:"tag,omitempty"`
 
 	TestOutputsPath string `json:"outputs_path,omitempty"`
+	TestTempPath    string `json:"temp_path,omitempty"`
 
 	TestInstanceCount  int               `json:"instances"`
 	TestInstanceRole   string            `json:"role,omitempty"`
@@ -71,6 +72,7 @@ func ParseRunParams(env []string) (*RunParams, error) {
 		TestInstanceParams:     unpackParams(m[EnvTestInstanceParams]),
 		TestInstanceRole:       m[EnvTestInstanceRole],
 		TestOutputsPath:        m[EnvTestOutputsPath],
+		TestTempPath:           m[EnvTestTempPath],
 		TestPlan:               m[EnvTestPlan],
 		TestRepo:               m[EnvTestRepo],
 		TestRun:                m[EnvTestRun],
@@ -103,6 +105,7 @@ func (rp *RunParams) ToEnvVars() map[string]string {
 		EnvTestInstanceParams:     packParams(rp.TestInstanceParams),
 		EnvTestInstanceRole:       rp.TestInstanceRole,
 		EnvTestOutputsPath:        rp.TestOutputsPath,
+		EnvTestTempPath:           rp.TestTempPath,
 		EnvTestPlan:               rp.TestPlan,
 		EnvTestRepo:               rp.TestRepo,
 		EnvTestRun:                rp.TestRun,
