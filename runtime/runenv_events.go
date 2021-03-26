@@ -170,6 +170,7 @@ func (rp *RunParams) MarshalLogObject(oe zapcore.ObjectEncoder) error {
 	}
 	oe.AddInt("instances", rp.TestInstanceCount)
 	oe.AddString("outputs_path", rp.TestOutputsPath)
+	oe.AddString("temp_path", rp.TestTempPath)
 	oe.AddString("network", func() string {
 		if rp.TestSubnet == nil {
 			return ""
