@@ -54,6 +54,10 @@ type RunParams struct {
 	//   value is a string representation of time.Duration, referring to
 	//   the frequency at which profiles will be captured.
 	TestCaptureProfiles map[string]string `json:"capture_profiles,omitempty"`
+
+	// Periodically emit goroutine dumps.
+	// When TestEmitDumps > 0, Testground emits every TestEmitDumps seconds a pprof goroutines report - the stack traces of all current goroutines.
+	TestEmitDumps int `json:"emit_dumps,omitempty"`
 }
 
 // ParseRunParams parses a list of environment variables into a RunParams.
@@ -81,6 +85,7 @@ func ParseRunParams(env []string) (*RunParams, error) {
 		TestSubnet:             toNet(m[EnvTestSubnet]),
 		TestTag:                m[EnvTestTag],
 		TestCaptureProfiles:    unpackParams(m[EnvTestCaptureProfiles]),
+		TestEmitDumps:          toInt(m[EnvTestEmitDumps]),
 	}, nil
 }
 
@@ -114,6 +119,7 @@ func (rp *RunParams) ToEnvVars() map[string]string {
 		EnvTestSubnet:             rp.TestSubnet.String(),
 		EnvTestTag:                rp.TestTag,
 		EnvTestCaptureProfiles:    packParams(rp.TestCaptureProfiles),
+		EnvTestEmitDumps:          strconv.Itoa(rp.TestEmitDumps),
 	}
 
 	return out
