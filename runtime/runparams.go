@@ -56,6 +56,7 @@ type RunParams struct {
 	TestCaptureProfiles map[string]string `json:"capture_profiles,omitempty"`
 
 	// Periodically emit goroutine dumps.
+	// When TestEmitDumps > 0, Testground emits every TestEmitDumps seconds a pprof goroutines report - the stack traces of all current goroutines.
 	TestEmitDumps int `json:"emit_dumps,omitempty"`
 }
 
