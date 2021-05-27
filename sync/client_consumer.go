@@ -167,8 +167,7 @@ RegenerateConnection:
 				payload := msg.Values[RedisPayloadKey]
 				val, err := sub.topic.decodePayload(payload)
 				if err != nil {
-					sc.log.Debugw("XREAD response: failed to decode message", "key", xr.Stream, "error", err, "id", msg.ID)
-					continue
+					sc.log.Fatalw("XREAD response: failed to decode message", "key", xr.Stream, "error", err, "id", msg.ID)
 				}
 
 				sc.log.Debugw("dispatching message to subscriber", "key", xr.Stream, "id", msg.ID)
