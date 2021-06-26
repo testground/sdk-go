@@ -2,10 +2,7 @@ package runtime
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"path/filepath"
-	"runtime/pprof"
 	gosync "sync"
 	"time"
 
@@ -41,7 +38,6 @@ type RunEnv struct {
 	wg        gosync.WaitGroup
 	closeCh   chan struct{}
 	assetsErr error
-	dumpsErr  error
 
 	unstructured struct {
 		files []*os.File
@@ -71,11 +67,6 @@ func NewRunEnv(params RunParams) *RunEnv {
 
 	re.wg.Add(1)
 	go re.manageAssets()
-
-	if re.TestEmitDumps > 0 {
-		re.wg.Add(1)
-		go re.emitDumps()
-	}
 
 	re.metrics = newMetrics(re)
 
@@ -130,38 +121,6 @@ func (re *RunEnv) manageAssets() {
 	}
 }
 
-func (re *RunEnv) emitDumps() {
-	defer re.wg.Done()
-	interval := time.Second * time.Duration(re.TestEmitDumps)
-
-	var err *multierror.Error
-	defer func() { re.dumpsErr = err.ErrorOrNil() }()
-
-	filename := filepath.Join(re.TestOutputsPath, "goroutines.prof")
-
-	w, e := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	if e != nil {
-		err = multierror.Append(err, e)
-		return
-	}
-	defer w.Close()
-
-	for {
-		select {
-		case <-time.After(interval):
-			timestamp := time.Now().UTC().Format(time.RFC3339)
-
-			_, e := fmt.Fprintln(w, timestamp)
-			err = multierror.Append(err, e)
-
-			e = pprof.Lookup("goroutine").WriteTo(w, 1)
-			err = multierror.Append(err, e)
-		case <-re.closeCh:
-			return
-		}
-	}
-}
-
 func (re *RunEnv) Close() error {
 	var err *multierror.Error
 
@@ -171,7 +130,7 @@ func (re *RunEnv) Close() error {
 	// This close stops monitoring the wapi errors channel, and closes assets.
 	close(re.closeCh)
 	re.wg.Wait()
-	err = multierror.Append(err, re.assetsErr, re.dumpsErr)
+	err = multierror.Append(err, re.assetsErr)
 
 	if l := re.logger; l != nil {
 		_ = l.Sync()
