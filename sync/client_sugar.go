@@ -138,3 +138,14 @@ func (c *sugarOperations) MustPublish(ctx context.Context, topic *Topic, payload
 	}
 	return seq
 }
+
+// MustSubscribe calls Subscribe, panicking if it errors.
+//
+// Suitable for shorthanding in test plans.
+func (c *sugarOperations) MustSubscribe(ctx context.Context, topic *Topic, ch interface{}) (sub *Subscription) {
+	sub, err := c.Subscribe(ctx, topic, ch)
+	if err != nil {
+		panic(err)
+	}
+	return sub
+}

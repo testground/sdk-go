@@ -4,55 +4,37 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"sync"
-	"time"
 
 	"github.com/testground/sdk-go/runtime"
-
-	"github.com/go-redis/redis/v7"
+	tgsync "github.com/testground/sync-service"
 	"go.uber.org/zap"
+	"nhooyr.io/websocket"
 )
 
 const (
-	RedisPayloadKey = "p"
-
-	EnvRedisHost = "REDIS_HOST"
-	EnvRedisPort = "REDIS_PORT"
+	EnvServiceHost = "SYNC_SERVICE_HOST"
+	EnvServicePort = "SYNC_SERVICE_PORT"
 )
 
 // ErrNoRunParameters is returned by the generic client when an unbound context
 // is passed in. See WithRunParams to bind RunParams to the context.
 var ErrNoRunParameters = fmt.Errorf("no run parameters provided")
 
-var DefaultRedisOpts = redis.Options{
-	MinIdleConns:       2,               // allow the pool to downsize to 0 conns.
-	PoolSize:           5,               // one for subscriptions, one for nonblocking operations.
-	PoolTimeout:        3 * time.Minute, // amount of time a waiter will wait for a conn to become available.
-	MaxRetries:         30,
-	MinRetryBackoff:    1 * time.Second,
-	MaxRetryBackoff:    3 * time.Second,
-	DialTimeout:        10 * time.Second,
-	ReadTimeout:        10 * time.Second,
-	WriteTimeout:       10 * time.Second,
-	IdleCheckFrequency: 30 * time.Second,
-	MaxConnAge:         2 * time.Minute,
-}
-
 type DefaultClient struct {
 	*sugarOperations
 
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
-
+	ctx       context.Context
+	cancel    context.CancelFunc
+	wg        sync.WaitGroup
 	log       *zap.SugaredLogger
 	extractor func(ctx context.Context) (rp *runtime.RunParams)
 
-	rclient *redis.Client
-
-	barrierCh chan *newBarrier
-	newSubCh  chan *newSubscription
+	nextMu     sync.Mutex
+	next       int
+	handlersMu sync.Mutex
+	handlers   map[string]chan *tgsync.Response
+	socket     *websocket.Conn
 }
 
 // NewBoundClient returns a new sync DefaultClient that is bound to the provided
@@ -67,12 +49,7 @@ type DefaultClient struct {
 func NewBoundClient(ctx context.Context, runenv *runtime.RunEnv) (*DefaultClient, error) {
 	log := runenv.SLogger()
 
-	rclient, err := redisClient(ctx, log)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create redis client: %w", err)
-	}
-
-	return newClient(ctx, rclient, log, func(ctx context.Context) *runtime.RunParams {
+	return newClient(ctx, log, func(ctx context.Context) *runtime.RunParams {
 		return &runenv.RunParams
 	})
 }
@@ -101,16 +78,7 @@ func MustBoundClient(ctx context.Context, runenv *runtime.RunEnv) *DefaultClient
 // A suitable context to pass here is the background context of the main
 // process.
 func NewGenericClient(ctx context.Context, log *zap.SugaredLogger) (*DefaultClient, error) {
-	rclient, err := redisClient(ctx, log)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create redis client: %w", err)
-	}
-
-	return newClient(ctx, rclient, log, GetRunParams)
-}
-
-func NewGenericClientWithRedis(ctx context.Context, rclient *redis.Client, log *zap.SugaredLogger) (*DefaultClient, error) {
-	return newClient(ctx, rclient, log, GetRunParams)
+	return newClient(ctx, log, GetRunParams)
 }
 
 // MustGenericClient creates a new generic client by calling NewGenericClient,
@@ -124,92 +92,59 @@ func MustGenericClient(ctx context.Context, log *zap.SugaredLogger) *DefaultClie
 }
 
 // newClient creates a new sync client.
-func newClient(ctx context.Context, redisClient *redis.Client, log *zap.SugaredLogger, extractor func(ctx context.Context) *runtime.RunParams) (*DefaultClient, error) {
+func newClient(ctx context.Context, log *zap.SugaredLogger, extractor func(ctx context.Context) *runtime.RunParams) (*DefaultClient, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	c := &DefaultClient{
 		ctx:       ctx,
 		cancel:    cancel,
 		log:       log,
 		extractor: extractor,
-		rclient:   redisClient,
-		barrierCh: make(chan *newBarrier),
-		newSubCh:  make(chan *newSubscription),
+		handlers:  map[string]chan *tgsync.Response{},
 	}
 
 	c.sugarOperations = &sugarOperations{c}
 
-	c.wg.Add(2)
-	go c.barrierWorker()
-	go c.subscriptionWorker()
-
-	if debug := log.Desugar().Core().Enabled(zap.DebugLevel); debug {
-		go func() {
-			tick := time.NewTicker(1 * time.Second)
-			defer tick.Stop()
-
-			for {
-				select {
-				case <-tick.C:
-					stats := redisClient.PoolStats()
-					log.Debugw("redis pool stats", "stats", stats)
-				case <-ctx.Done():
-					return
-				}
-			}
-		}()
+	addr, err := socketAddress()
+	if err != nil {
+		return nil, err
 	}
+
+	c.socket, _, err = websocket.Dial(ctx, addr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	c.wg.Add(1)
+	go c.responsesWorker()
 
 	return c, nil
 }
 
 // Close closes this client, cancels ongoing operations, and releases resources.
 func (c *DefaultClient) Close() error {
+	err := c.socket.Close(websocket.StatusNormalClosure, "")
+	if err != nil {
+		return err
+	}
+
 	c.cancel()
 	c.wg.Wait()
-
-	return c.rclient.Close()
+	return nil
 }
 
-// newSubscription is an ancillary type used when creating a new Subscription.
-type newSubscription struct {
-	sub      *Subscription
-	resultCh chan error
-}
-
-// newBarrier is an ancillary type used when creating a new Barrier.
-type newBarrier struct {
-	barrier  *Barrier
-	resultCh chan error
-}
-
-// redisClient returns a Redis client constructed from this process' environment
-// variables.
-func redisClient(ctx context.Context, log *zap.SugaredLogger) (client *redis.Client, err error) {
+func socketAddress() (string, error) {
 	var (
-		port = 6379
-		host = os.Getenv(EnvRedisHost)
+		port = os.Getenv(EnvServicePort)
+		host = os.Getenv(EnvServiceHost)
 	)
 
-	if portStr := os.Getenv(EnvRedisPort); portStr != "" {
-		port, err = strconv.Atoi(portStr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse port '%q': %w", portStr, err)
-		}
+	if port == "" {
+		port = "5050"
 	}
 
-	log.Debugw("trying redis host", "host", host, "port", port)
-
-	opts := DefaultRedisOpts
-	opts.Addr = fmt.Sprintf("%s:%d", host, port)
-	client = redis.NewClient(&opts).WithContext(ctx)
-
-	if err := client.Ping().Err(); err != nil {
-		_ = client.Close()
-		log.Errorw("failed to ping redis host", "host", host, "port", port, "error", err)
-		return nil, err
+	if host == "" {
+		host = "testground-sync-service"
 	}
 
-	log.Debugw("redis ping OK", "opts", opts)
-
-	return client, nil
+	return fmt.Sprintf("ws://%s:%s", host, port), nil
 }

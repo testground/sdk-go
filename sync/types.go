@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -23,19 +22,15 @@ func (s State) Key(rp *runtime.RunParams) string {
 // checkpoint that will fire once the `target` number of entries on that state
 // have been registered.
 type Barrier struct {
-	C chan error
-
-	ctx    context.Context
-	state  State
-	key    string
-	target int64
+	C      chan error
+	target int64 // Only kept for client_inmem.go
 }
 
 // Topic represents a meeting place for test instances to exchange arbitrary
 // data.
 type Topic struct {
 	name string
-	typ  reflect.Type
+	*typeValidator
 }
 
 // NewTopic constructs a Topic with the provided name, and the type of the
@@ -47,7 +42,10 @@ func NewTopic(name string, typ interface{}) *Topic {
 	if !ok {
 		t = reflect.TypeOf(typ)
 	}
-	return &Topic{name, t}
+	return &Topic{
+		name:          name,
+		typeValidator: &typeValidator{t},
+	}
 }
 
 // Key gets the key for this Topic, contextualized to a set of RunParams.
@@ -56,7 +54,11 @@ func (t Topic) Key(rp *runtime.RunParams) string {
 	return p
 }
 
-func (t Topic) validatePayload(val interface{}) bool {
+type typeValidator struct {
+	typ reflect.Type
+}
+
+func (t typeValidator) validatePayload(val interface{}) bool {
 	ttyp, vtyp := t.typ, reflect.TypeOf(val)
 	if ttyp.Kind() == reflect.Ptr {
 		ttyp = ttyp.Elem()
@@ -68,7 +70,7 @@ func (t Topic) validatePayload(val interface{}) bool {
 }
 
 // decodePayload extracts a value of the specified type from incoming json.
-func (t Topic) decodePayload(val interface{}) (reflect.Value, error) {
+func (t typeValidator) decodePayload(val interface{}) (reflect.Value, error) {
 	// Deserialize the value.
 	typ := t.typ
 	if typ.Kind() == reflect.Ptr {
@@ -80,7 +82,7 @@ func (t Topic) decodePayload(val interface{}) (reflect.Value, error) {
 		panic("payload not a string")
 	}
 	if err := json.Unmarshal([]byte(raw), payload.Interface()); err != nil {
-		return reflect.Value{}, fmt.Errorf("failed to decode as type %s: %s", t.typ, string(raw))
+		return reflect.Value{}, fmt.Errorf("failed to decode as type %s: %s", t.typ, raw)
 	}
 	return payload, nil
 }
@@ -88,17 +90,7 @@ func (t Topic) decodePayload(val interface{}) (reflect.Value, error) {
 // Subscription represents a receive channel for data being published in a
 // Topic.
 type Subscription struct {
-	ctx    context.Context
-	outCh  reflect.Value
 	doneCh chan error
-
-	// sendFn performs a select over outCh and the context, and returns true if
-	// we sent the value, or false if the context fired.
-	sendFn func(v reflect.Value) (sent bool)
-
-	topic  *Topic
-	key    string
-	lastid string
 }
 
 func (s *Subscription) Done() <-chan error {

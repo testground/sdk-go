@@ -74,7 +74,6 @@ func (i *inmemClient) Subscribe(_ context.Context, topic *Topic, ch interface{})
 func (i *inmemClient) Barrier(_ context.Context, state State, target int) (*Barrier, error) {
 	b := &Barrier{
 		C:      make(chan error, 1),
-		ctx:    context.TODO(),
 		target: int64(target),
 	}
 
