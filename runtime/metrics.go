@@ -40,7 +40,7 @@ func newMetrics(re *RunEnv) *Metrics {
 			m.batcher = &nilBatcher{client}
 		}
 
-		dsinks = append(dsinks, m.writeToInfluxDBSink("diagnostics"))
+		//dsinks = append(dsinks, m.writeToInfluxDBSink("diagnostics"))
 	} else {
 		re.RecordMessage("InfluxDB unavailable; no metrics will be dispatched: %s", err)
 	}

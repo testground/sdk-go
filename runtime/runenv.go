@@ -19,9 +19,9 @@ var (
 	InfluxBatchRetryOpts = func(re *RunEnv) []retry.Option {
 		return []retry.Option{
 			retry.Attempts(5),
-			retry.Delay(500 * time.Millisecond),
+			retry.Delay(50000 * time.Millisecond),
 			retry.OnRetry(func(n uint, err error) {
-				re.RecordMessage("failed to send batch to InfluxDB; attempt %d; err: %s", n, err)
+				//re.RecordMessage("failed to send batch to InfluxDB; attempt %d; err: %s", n, err)
 			}),
 		}
 	}
