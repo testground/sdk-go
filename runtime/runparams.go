@@ -118,6 +118,7 @@ func (rp *RunParams) ToEnvVars() map[string]string {
 		EnvTestSubnet:             rp.TestSubnet.String(),
 		EnvTestTag:                rp.TestTag,
 		EnvTestCaptureProfiles:    packParams(rp.TestCaptureProfiles),
+		EnvTestDisableInflux:      strconv.FormatBool(rp.TestDisableInflux),
 	}
 
 	return out
