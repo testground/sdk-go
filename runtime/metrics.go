@@ -37,7 +37,7 @@ func newMetrics(re *RunEnv) *Metrics {
 		}
 
 		m.influxdb = client
-		if InfluxNilBatcher {
+		if InfluxTestBatcher {
 			m.batcher = &nilBatcher{client}
 		} else {
 			m.batcher = newBatcher(re, client, InfluxBatchLength, InfluxBatchInterval, InfluxBatchRetryOpts(re)...)

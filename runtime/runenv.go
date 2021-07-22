@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	InfluxNilBatcher     = true // used for testing purposes
+	InfluxTestBatcher    = true // used for testing purposes
 	InfluxBatchLength    = 128
 	InfluxBatchInterval  = 1 * time.Second
 	InfluxBatchRetryOpts = func(re *RunEnv) []retry.Option {
