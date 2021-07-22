@@ -27,17 +27,20 @@ func newMetrics(re *RunEnv) *Metrics {
 	m := &Metrics{re: re}
 
 	var dsinks = []MetricSinkFn{m.logSinkJSON("diagnostics.out")}
-	if client, err := NewInfluxDBClient(re); err == nil {
+
+	if re.TestDisableInflux {
+		re.RecordMessage("InfluxDB batching disabled by test; no metrics will be dispatched")
+	} else if client, err := NewInfluxDBClient(re); err == nil {
 		m.tags = map[string]string{
 			"run":      re.TestRun,
 			"group_id": re.TestGroupID,
 		}
 
 		m.influxdb = client
-		if InfluxBatching {
-			m.batcher = newBatcher(re, client, InfluxBatchLength, InfluxBatchInterval, InfluxBatchRetryOpts(re)...)
-		} else {
+		if InfluxNilBatcher {
 			m.batcher = &nilBatcher{client}
+		} else {
+			m.batcher = newBatcher(re, client, InfluxBatchLength, InfluxBatchInterval, InfluxBatchRetryOpts(re)...)
 		}
 
 		dsinks = append(dsinks, m.writeToInfluxDBSink("diagnostics"))

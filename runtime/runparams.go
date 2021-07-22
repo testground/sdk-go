@@ -54,6 +54,9 @@ type RunParams struct {
 	//   value is a string representation of time.Duration, referring to
 	//   the frequency at which profiles will be captured.
 	TestCaptureProfiles map[string]string `json:"capture_profiles,omitempty"`
+
+	// TestDisableInflux enables Influx batching. It is true by default.
+	TestDisableInflux bool `json:"disable_influx,omitempty"`
 }
 
 // ParseRunParams parses a list of environment variables into a RunParams.
@@ -81,6 +84,7 @@ func ParseRunParams(env []string) (*RunParams, error) {
 		TestSubnet:             toNet(m[EnvTestSubnet]),
 		TestTag:                m[EnvTestTag],
 		TestCaptureProfiles:    unpackParams(m[EnvTestCaptureProfiles]),
+		TestDisableInflux:      toBool(m[EnvTestDisableInflux]),
 	}, nil
 }
 
