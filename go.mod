@@ -11,7 +11,7 @@ require (
 	github.com/raulk/clock v1.1.0
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 	github.com/stretchr/testify v1.5.1
-	github.com/testground/sync-service v0.0.0-20210508061333-7f525a82e254
+	github.com/testground/sync-service v0.1.0
 	go.uber.org/zap v1.16.0
 	nhooyr.io/websocket v1.8.6
 )
