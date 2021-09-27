@@ -56,7 +56,7 @@ type RunParams struct {
 	TestCaptureProfiles map[string]string `json:"capture_profiles,omitempty"`
 
 	// TestDisableMetrics disables Influx batching. It is false by default.
-	TestDisableMetrics bool `json:"disable_influx,omitempty"`
+	TestDisableMetrics bool `json:"disable_metrics,omitempty"`
 }
 
 // ParseRunParams parses a list of environment variables into a RunParams.
