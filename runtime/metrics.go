@@ -28,7 +28,7 @@ func newMetrics(re *RunEnv) *Metrics {
 
 	var dsinks = []MetricSinkFn{m.logSinkJSON("diagnostics.out")}
 
-	if re.TestDisableInflux {
+	if re.TestDisableMetrics {
 		re.RecordMessage("InfluxDB batching disabled by test; no metrics will be dispatched")
 	} else if client, err := NewInfluxDBClient(re); err == nil {
 		m.tags = map[string]string{

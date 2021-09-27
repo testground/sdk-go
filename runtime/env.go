@@ -18,5 +18,5 @@ const (
 	EnvTestTag                = "TEST_TAG"
 	EnvTestCaptureProfiles    = "TEST_CAPTURE_PROFILES"
 	EnvTestTempPath           = "TEST_TEMP_PATH"
-	EnvTestDisableInflux      = "TEST_DISABLE_INFLUX"
+	EnvTestDisableMetrics     = "TEST_DISABLE_METRICS"
 )

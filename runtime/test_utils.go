@@ -39,7 +39,7 @@ func RandomTestRunEnv(t *testing.T) (re *RunEnv, cleanup func()) {
 		TestStartTime:          time.Now(),
 		TestGroupInstanceCount: int(1 + (rand.Uint32() % 999)),
 		TestOutputsPath:        odir,
-		TestDisableInflux:      false,
+		TestDisableMetrics:     false,
 	}
 
 	return NewRunEnv(rp), func() {
