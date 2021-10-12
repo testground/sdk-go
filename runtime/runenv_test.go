@@ -202,7 +202,7 @@ func TestMetricsRecordedInFile(t *testing.T) {
 }
 
 func TestDiagnosticsDispatchedToInfluxDB(t *testing.T) {
-	InfluxBatching = false
+	InfluxTestBatcher = true
 	tc := &testClient{}
 	TestInfluxDBClient = tc
 
@@ -236,7 +236,7 @@ func TestDiagnosticsDispatchedToInfluxDB(t *testing.T) {
 }
 
 func TestResultsDispatchedOnClose(t *testing.T) {
-	InfluxBatching = false
+	InfluxTestBatcher = true
 	tc := &testClient{}
 	TestInfluxDBClient = tc
 
@@ -272,7 +272,7 @@ func TestResultsDispatchedOnClose(t *testing.T) {
 }
 
 func TestFrequencyChange(t *testing.T) {
-	InfluxBatching = false
+	InfluxTestBatcher = true
 	tc := &testClient{}
 	TestInfluxDBClient = tc
 
@@ -301,7 +301,7 @@ func TestFrequencyChange(t *testing.T) {
 }
 
 func TestInvalidMetricName(t *testing.T) {
-	InfluxBatching = true
+	InfluxTestBatcher = false
 	tc := &testClient{}
 	TestInfluxDBClient = tc
 
