@@ -35,13 +35,13 @@ func (c *DefaultClient) responsesWorker() {
 		var ch chan *sync.Response
 		c.handlersMu.Lock()
 		ch = c.handlers[res.ID]
-		c.handlersMu.Unlock()
-
 		if ch == nil {
 			c.log.Warnf("no handler available for response: %s", res.ID)
 		} else {
 			ch <- res
 		}
+		c.handlersMu.Unlock()
+
 	}
 
 	c.wg.Done()
