@@ -39,10 +39,14 @@ func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
 		TestGroupID: c.runenv.TestGroupID,
 	}}
 	if err := c.syncClient.SignalEvent(ctx, se); err != nil {
+		c.runenv.RecordMessage("Error signaling network-initialization start event: %s", err)
 		return err
 	}
 
+	c.runenv.RecordMessage("Runenv sidecar enabled: %s", c.runenv.TestSidecar)
+
 	if c.runenv.TestSidecar {
+		c.runenv.RecordMessage("Waiting on network-initialized event")
 		err := <-c.syncClient.MustBarrier(ctx, "network-initialized", c.runenv.TestInstanceCount).C
 		if err != nil {
 			c.runenv.RecordMessage(InitialisationFailed)
@@ -56,9 +60,10 @@ func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
 		TestGroupID: c.runenv.TestGroupID,
 	}}
 	if err := c.syncClient.SignalEvent(ctx, ee); err != nil {
+		c.runenv.RecordMessage("Error signaling network-initialization end event: %s", err)
 		return err
 	}
-
+	c.runenv.RecordMessage("Finished waiting for network initialization")
 	return nil
 }
 
