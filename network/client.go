@@ -7,6 +7,7 @@ import (
 
 	"github.com/testground/sdk-go/runtime"
 	"github.com/testground/sdk-go/sync"
+	"github.com/testground/testground/pkg/logging"
 )
 
 const (
@@ -57,11 +58,13 @@ func (c *Client) WaitNetworkInitialized(ctx context.Context) error {
 	}
 	c.runenv.RecordMessage(InitialisationSuccessful)
 
+	logging.S().Infof("Signaling sync client")
 	ee := &runtime.Event{StageEndEvent: &runtime.StageEndEvent{
 		Name:        "network-initialized",
 		TestGroupID: c.runenv.TestGroupID,
 	}}
 	if err := c.syncClient.SignalEvent(ctx, ee); err != nil {
+		logging.S().Errorf("Error signaling sync client: %s")
 		c.runenv.RecordMessage("Error signaling network-initialization end event: %s", err)
 		return err
 	}
