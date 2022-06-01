@@ -164,9 +164,9 @@ func invoke(runenv *runtime.RunEnv, fn interface{}) {
 		defer HandlePanics()
 
 		switch f := fn.(type) {
-		case TestCaseFn:
+		case UnInitializedTestCaseFn:
 			errCh <- f(runenv)
-		case InitializedTestCaseFn:
+		case InitializedTestCaseFn, TestCaseFn:
 			ic := new(InitContext)
 			ic.init(runenv)
 			closer = ic.close // we want to close the InitContext after having calld RecordSuccess or RecordFailure
