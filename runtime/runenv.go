@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"fmt"
 	"os"
 	gosync "sync"
 	"time"
@@ -147,6 +148,7 @@ func CurrentRunEnv() *RunEnv {
 
 // ParseRunEnv parses a list of environment variables into a RunEnv.
 func ParseRunEnv(env []string) (*RunEnv, error) {
+	fmt.Println("Received env to parse: ", env)
 	p, err := ParseRunParams(env)
 	if err != nil {
 		return nil, err
