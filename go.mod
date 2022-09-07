@@ -13,5 +13,6 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/testground/sync-service v0.1.0
 	go.uber.org/zap v1.16.0
+	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
 	nhooyr.io/websocket v1.8.6
 )
